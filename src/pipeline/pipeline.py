@@ -12,10 +12,12 @@ from pydub import AudioSegment
 from src.llm.llm import LLM
 from src.db.db_youtube import YouTubeManager
 
+
 class Pipeline:
     """
     Classe pour la récupération des informations d'une vidéo YouTube.
     """
+
     def __init__(self, url):
         """
         Initialise la classe avec l’URL de la vidéo YouTube.
@@ -24,6 +26,8 @@ class Pipeline:
             url (str): URL de la vidéo YouTube.
         """
         self.url = url
+        self.llm = LLM()
+        self.db_manager = YouTubeManager()
 
     def get_mp3(self) -> str:
         """
@@ -33,20 +37,20 @@ class Pipeline:
             str: Nom du fichier MP3.
         """
         options = {
-            'format': 'bestaudio/best',
-            'postprocessors': [
+            "format": "bestaudio/best",
+            "postprocessors": [
                 {
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192'
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
                 }
             ],
-            'outtmpl': '%(title)s.mp3',
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36'
+            "outtmpl": "%(title)s.mp3",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36",
         }
         with yt_dlp.YoutubeDL(options) as ydl:
             ydl.download([self.url])
-        mp3_files = [f for f in os.listdir() if f.endswith('.mp3')]
+        mp3_files = [f for f in os.listdir() if f.endswith(".mp3")]
         return mp3_files[0]
 
     def audio_chunks(self, mp3_file: str, chunk_length_ms: int = 600000):
@@ -64,7 +68,7 @@ class Pipeline:
         if len(audio) > chunk_length_ms:
             chunks = []
             for i in range(0, len(audio), chunk_length_ms):
-                chunks.append(audio[i:i+chunk_length_ms])
+                chunks.append(audio[i : i + chunk_length_ms])
             return chunks
         else:
             return [audio]
@@ -84,9 +88,11 @@ class Pipeline:
         buf.seek(0)
         response = requests.post(
             "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
-            headers={"Authorization": f"Bearer {st.session_state['huggingface_api_key']}"},
+            headers={
+                "Authorization": f"Bearer {st.session_state['huggingface_api_key']}"
+            },
             data=buf.read(),
-            timeout=300
+            timeout=300,
         )
         try:
             result = response.json()
@@ -119,22 +125,24 @@ class Pipeline:
 
         Args:
             transcription (str): Transcription à améliorer.
-        
+
         Returns:
             str: Transcription améliorée.
         """
-        llm = LLM()
-        transcription = llm.call_model(
+
+        transcription = self.llm.call_model(
             provider="mistral",
-            model="ministral-8b-latest",
+            model="mistral-large-latest",
             temperature=0.5,
-            prompt_dict=[{
-                "role": "user",
-                "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général de la vidéo : {transcription}"
-            }]
+            prompt_dict=[
+                {
+                    "role": "user",
+                    "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général de la vidéo : {transcription}",
+                }
+            ],
         )
         return transcription
-    
+
     def create_summary(self, transcription: str) -> str:
         """
         Crée un résumé de la transcription.
@@ -145,15 +153,16 @@ class Pipeline:
         Returns:
             str: Résumé de la transcription.
         """
-        llm = LLM()
-        summary = llm.call_model(
+        summary = self.llm.call_model(
             provider="mistral",
-            model="ministral-8b-latest",
+            model="mistral-large-latest",
             temperature=0.7,
-            prompt_dict=[{
-                "role": "user",
-                "content": f"Crée un résumé de la transcription de l'audio d'une vidéo YouTube. Le résumé doit être concis et refléter les idées principales de la vidéo : {transcription}"
-            }]
+            prompt_dict=[
+                {
+                    "role": "user",
+                    "content": f"Crée un résumé de la transcription de l'audio d'une vidéo YouTube. Le résumé doit être concis et refléter les idées principales de la vidéo : {transcription}",
+                }
+            ],
         )
         return summary
 
@@ -161,6 +170,5 @@ class Pipeline:
         """
         Met à jour la base de données avec la transcription et le résumé de la vidéo.
         """
-        db_manager = YouTubeManager()
-        db_manager.add_transcription(self.url, transcription)
-        db_manager.add_resume(self.url, summary)
+        self.db_manager.add_transcription(self.url, transcription)
+        self.db_manager.add_resume(self.url, summary)

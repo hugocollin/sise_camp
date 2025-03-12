@@ -4,11 +4,19 @@ Ce fichier contient le code principal de l'application Streamlit.
 
 import streamlit as st
 
-from src.app.components import load_api_keys, show_sidebar, create_new_research
+from src.app.components import (
+    load_api_keys,
+    stream_text,
+    show_sidebar,
+    create_new_research,
+    generate_research_name,
+)
 
 
 # Configuration de la page
-st.set_page_config(page_title="SISE Camp", page_icon="ressources/favicon.png", layout="wide")
+st.set_page_config(
+    page_title="SISE Camp", page_icon="ressources/favicon.png", layout="wide"
+)
 
 # Chargement des clés API
 load_api_keys()
@@ -35,6 +43,8 @@ if SELECTED_RESEARCH:
 elif "selected_research" not in st.session_state and SELECTED_RESEARCH:
     st.session_state["selected_research"] = SELECTED_RESEARCH
 
+print(st.session_state)
+
 # Affichage de la recherche sélectionnée
 if (
     "selected_research" in st.session_state
@@ -42,10 +52,13 @@ if (
 ):
     # Informations sur la recherche
     current_research = st.session_state["selected_research"]
-    st.write(f"**{current_research}**")
+    st.write_stream(stream_text(f"**{current_research}**"))
     st.header(st.session_state["research"][current_research]["text"])
 
-    st.info("*Résultats de la recherche disponibles ultérieurement*", icon=":material/info:")
+    st.info(
+        "*Résultats de la recherche disponibles ultérieurement*", icon=":material/info:"
+    )
+    st.write("*SISE Camp peut faire des erreurs. Envisagez de vérifier les informations importantes et n'envoyez pas d'informations confidentielles.*")
 else:
     st.container(height=200, border=False)
     with st.container():
@@ -70,6 +83,7 @@ else:
                 if research:
                     st.session_state["initial_research"] = research
                     create_new_research(research)
+                    generate_research_name(research)
                     st.rerun()
             else:
                 # Message d'information

@@ -3,9 +3,11 @@ Ce fichier contient les fonctions nécessaires pour l'affichage de l'interface d
 """
 
 import os
+import time
 from dotenv import find_dotenv, load_dotenv
 import streamlit as st
 
+from src.llm.llm import LLM
 from src.pipeline.pipeline import Pipeline
 
 
@@ -24,13 +26,26 @@ def load_api_keys():
         mistral_api_key = st.secrets["MISTRAL_API_KEY"]
 
     # Stockage du statut de recherche des clés API
-    if huggingface_api_key and mistral_api_key :
+    if huggingface_api_key and mistral_api_key:
         st.session_state["found_api_keys"] = True
         st.session_state["huggingface_api_key"] = huggingface_api_key
     else:
         st.session_state["found_api_keys"] = False
 
-def create_new_research(research : str):
+
+def stream_text(text: str):
+    """
+    Fonction pour afficher le texte progressivement.
+
+    Args:
+        text (str): Texte à afficher progressivement.
+    """
+    for word in text.split(" "):
+        yield word + " "
+        time.sleep(0.03)
+
+
+def create_new_research(research: str):
     """
     Fonction pour créer une nouvelle recherche.
 
@@ -56,7 +71,7 @@ def create_new_research(research : str):
     st.session_state["selected_research"] = new_research_name
 
 
-def select_research(research_name : str):
+def select_research(research_name: str):
     """
     Fonction pour sélectionner une recherche.
 
@@ -66,8 +81,48 @@ def select_research(research_name : str):
     st.session_state["selected_research"] = research_name
 
 
+def generate_research_name(research_name: str) -> str:
+    """
+    Fonction pour générer un nom de recherche.
+
+    Args:
+        research_name (str): Recherche de l'utilisateur.
+    """
+    llm = LLM()
+
+    # 5 tentatives pour générer un nom de conversation
+    for _ in range(5):
+        # Génération du nom de la conversation
+        research_name = llm.call_model(
+            provider="mistral",
+            model="mistral-large-latest",
+            temperature=0.7,
+            prompt_dict=[
+                {
+                    "role": "user",
+                    "content": f"Tu es une intelligence artificielle spécialisée dans la création de nom de thématique en français. En te basant sur le texte suivant, qui est la recherche de l'utilisateur, propose une thématique d'au maximum de 30 caractères. Répond uniquement en donnant la thématique sans explication supplémentaire : {research_name}",
+                }
+            ],
+        )
+
+        # Nettoyage du nom de la conversation
+        research_name = research_name.strip()
+
+        # Vérification de la conformité du nom de la conversation
+        if len(research_name) > 30:
+            continue
+        if research_name in st.session_state["research"]:
+            continue
+
+        # Changement du nom de la conversation
+        st.session_state["research"][research_name] = st.session_state["research"].pop(
+            list(st.session_state["research"].keys())[0]
+        )
+        st.session_state["selected_research"] = research_name
+
+
 @st.dialog("Renommer la recherche")
-def rename_research(current_name : str):
+def rename_research(current_name: str):
     """
     Fonction pour renommer une recherche.
 
@@ -99,6 +154,7 @@ def rename_research(current_name : str):
                 st.session_state["research_renamed"] = True
             st.rerun()
 
+
 def show_sidebar() -> str:
     """
     Fonction pour afficher la barre latérale de l'application.
@@ -128,7 +184,9 @@ def show_sidebar() -> str:
 
         # Bouton pour ajouter une vidéo YouTube
         with cols[1]:
-            if st.button("", icon=":material/youtube_activity:", use_container_width=True):
+            if st.button(
+                "", icon=":material/youtube_activity:", use_container_width=True
+            ):
                 show_add_video_dialog()
 
         # Bouton pour afficher les informations sur l'application
@@ -151,7 +209,8 @@ def show_sidebar() -> str:
                         f":material/forum: {research_name}",
                         type=(
                             "primary"
-                            if research_name == st.session_state.get("selected_research")
+                            if research_name
+                            == st.session_state.get("selected_research")
                             else "secondary"
                         ),
                         use_container_width=True,
@@ -199,6 +258,7 @@ def show_sidebar() -> str:
             )
             return None
 
+
 @st.dialog("Ajouter une vidéo YouTube")
 def show_add_video_dialog():
     """
@@ -209,7 +269,10 @@ def show_add_video_dialog():
 
     # Récupération de la transcription
     if st.button(":material/add_circle: Ajouter la vidéo"):
-        with st.status("**Traitement de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**", expanded=True) as status:
+        with st.status(
+            "**Traitement de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**",
+            expanded=True,
+        ) as status:
             st.write("Initialisation...")
             pipeline = Pipeline(youtube_url)
 
@@ -230,7 +293,7 @@ def show_add_video_dialog():
 
             st.write("Enregistrement des informations...")
             pipeline.update_video_info(transcription, summary)
-            
+
             st.write("Finalisation...")
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)
@@ -240,6 +303,7 @@ def show_add_video_dialog():
                 state="complete",
                 expanded=False,
             )
+
 
 @st.dialog("Informations sur l'application", width="large")
 def show_info_dialog():

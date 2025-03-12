@@ -31,7 +31,7 @@ class LLM:
             provider, model, temperature, prompt_dict=prompt_dict
         )
         response_text = str(response.choices[0].message.content)
-        
+
         return response_text
 
     def _generate(
