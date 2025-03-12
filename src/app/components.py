@@ -206,7 +206,7 @@ def show_sidebar() -> str:
                 # Bouton pour sélectionner la recherche
                 with btn_cols[0]:
                     st.button(
-                        f":material/forum: {research_name}",
+                        f":material/search: {research_name}",
                         type=(
                             "primary"
                             if research_name

@@ -43,8 +43,6 @@ if SELECTED_RESEARCH:
 elif "selected_research" not in st.session_state and SELECTED_RESEARCH:
     st.session_state["selected_research"] = SELECTED_RESEARCH
 
-print(st.session_state)
-
 # Affichage de la recherche sélectionnée
 if (
     "selected_research" in st.session_state
