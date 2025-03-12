@@ -20,7 +20,13 @@ class Transcriptor:
         """
         self.url = url
 
-    def get_transcription(self):
+    def get_mp3(self) -> str:
+        """
+        Récupère le fichier audio de la vidéo YouTube au format MP3.
+
+        Returns:
+            str: Nom du fichier MP3.
+        """
         options = {
             'format': 'bestaudio/best',
             'postprocessors': [
@@ -30,64 +36,113 @@ class Transcriptor:
                     'preferredquality': '192'
                 }
             ],
-            'outtmpl': f'%(title)s.mp3',
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+            'outtmpl': '%(title)s.mp3',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36'
         }
-
         with yt_dlp.YoutubeDL(options) as ydl:
             ydl.download([self.url])
-        
         mp3_files = [f for f in os.listdir() if f.endswith('.mp3')]
-        mp3_file = mp3_files[0]
+        return mp3_files[0]
+    
+    def audio_chunks(self, mp3_file: str, chunk_length_ms: int = 600000):
+        """
+        Découpe un fichier audio en segments de 10 minutes maximum.
 
+        Args:
+            mp3_file (str): Nom du fichier audio à découper.
+            chunk_length_ms (int, optional): Longueur des segments en millisecondes. Defaults to 600000.
+
+        Returns:
+            list: Liste des segments audio.
+        """
         audio = AudioSegment.from_file(mp3_file, format="mp3")
-        chunk_length_ms = 10 * 60000  # 10 minutes
+        if len(audio) > chunk_length_ms:
+            chunks = []
+            for i in range(0, len(audio), chunk_length_ms):
+                chunks.append(audio[i:i+chunk_length_ms])
+            return chunks
+        else:
+            return [audio]
 
-        def send_chunk(chunk_audio):
-            """Envoie un segment audio à l’API Whisper et renvoie le texte transcrit."""
-            buf = BytesIO()
-            chunk_audio.export(buf, format="mp3")
-            buf.seek(0)
-            response = requests.post(
-                "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
-                headers={"Authorization": f"Bearer {st.session_state['huggingface_api_key']}"},
-                data=buf.read(),
-                timeout=300
-            )
+    def get_transcription(self, chunk_audio: AudioSegment) -> str:
+        """
+        Envoie un fichier audio à l'API Whisper et récupère la transcription.
+
+        Args:
+            chunk_audio (AudioSegment): Segment audio à transcrire.
+
+        Returns:
+            str: Transcription du segment audio.
+        """
+        buf = BytesIO()
+        chunk_audio.export(buf, format="mp3")
+        buf.seek(0)
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
+            headers={"Authorization": f"Bearer {st.session_state['huggingface_api_key']}"},
+            data=buf.read(),
+            timeout=300
+        )
+        try:
             result = response.json()
             return result.get("text", response.text)
+        except Exception:
+            return response.text
+    
+    def transcribe_audio(self, chunks) -> str:
+        """
+        Transcrit l’ensemble des segments audio et renvoie la transcription complète.
 
-        # Si l’audio dépasse 10 minutes, on le découpe
-        if len(audio) > chunk_length_ms:
-            print("L'audio dépasse 10 minutes, découpage en segments...")
+        Args:
+            chunks (list): Liste des segments audio.
+
+        Returns:
+            str: Transcription complète.
+        """
+        if len(chunks) > 1:
             transcription_parts = []
-            for i in range(0, len(audio), chunk_length_ms):
-                segment = audio[i:i+chunk_length_ms]
-                text_part = send_chunk(segment)
+            for chunk in chunks:
+                text_part = self.get_transcription(chunk)
                 transcription_parts.append(text_part)
-            transcription = " ".join(transcription_parts)
+            return " ".join(transcription_parts)
         else:
-            # Sinon, on envoie directement l’audio complet
-            with open(mp3_file, 'rb') as file:
-                audio_data = file.read()
-            response = requests.post(
-                "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
-                headers={"Authorization": f"Bearer {st.session_state['huggingface_api_key']}"},
-                data=audio_data,
-                timeout=300
-            )
-            result = response.json()
-            transcription = result.get("text", response.text)
+            return self.get_transcription(chunks[0])
+        
+    def transcription_enhancement(self, transcription: str) -> str:
+        """
+        Améliore la transcription en utilisant un modèle de langage.
 
+        Args:
+            transcription (str): Transcription à améliorer.
+        
+        Returns:
+            str: Transcription améliorée.
+        """
         llm = LLM()
-        ai_transcription = llm.call_model(
+        transcription = llm.call_model(
             provider="mistral",
             model="ministral-8b-latest",
             temperature=0.5,
-            prompt_dict=[{"role": "user", "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général du discours : {transcription}"}]
+            prompt_dict=[{
+                "role": "user",
+                "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général du discours : {transcription}"
+            }]
         )
+        return transcription
+    
+    def transcribe(self) -> str:
+        """
+        Transcrit une vidéo YouTube en texte.
+
+        Returns:
+            str: Transcription de la vidéo.
+        """
+        mp3_file = self.get_mp3()
+        chunks = self.audio_chunks(mp3_file)
+        transcription = self.transcribe_audio(chunks)
+        transcription = self.transcription_enhancement(transcription)
 
         if os.path.exists(mp3_file):
             os.remove(mp3_file)
 
-        return ai_transcription
+        return transcription
