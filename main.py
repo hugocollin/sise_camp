@@ -1,22 +1,80 @@
+"""
+Ce fichier contient le code principal de l'application Streamlit.
+"""
+
 import streamlit as st
 
-from src.app.components import load_api_keys
-from src.transcriptor.transcriptor import Transcriptor
+from src.app.components import load_api_keys, show_sidebar, create_new_research
+
 
 # Configuration de la page
-st.set_page_config(page_title="SISE Camp", page_icon="ressources/icon.png")
-
-st.title("Transcription YouTube")
+st.set_page_config(page_title="SISE Camp", page_icon="ressources/favicon.png", layout="wide")
 
 # Chargement des clés API
 load_api_keys()
 
-youtube_url = st.text_input("Entrez le lien YouTube")
+# Mise en page personnalisée
+st.markdown(
+    """
+    <style>
+        .block-container {
+            padding-top: 50px;
+            padding-bottom: 0px;
+        }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
 
-if st.button("Transcrire"):
-    with st.spinner("Téléchargement et conversion..."):
-        transcriptor = Transcriptor(youtube_url)
-    with st.spinner("Transcription de l'audio..."):
-        transcription = transcriptor.transcribe()
-    st.success("Transcription terminée !")
-    st.write(transcription)
+# Affichage de la barre latérale
+SELECTED_RESEARCH = show_sidebar()
+
+# Stockage de la recherche sélectionnée
+if SELECTED_RESEARCH:
+    st.session_state["selected_research"] = SELECTED_RESEARCH
+elif "selected_research" not in st.session_state and SELECTED_RESEARCH:
+    st.session_state["selected_research"] = SELECTED_RESEARCH
+
+# Affichage de la recherche sélectionnée
+if (
+    "selected_research" in st.session_state
+    and st.session_state["selected_research"] is not None
+):
+    # Informations sur la recherche
+    current_research = st.session_state["selected_research"]
+    st.write(f"**{current_research}**")
+    st.header(st.session_state["research"][current_research]["text"])
+
+    st.info("*Résultats de la recherche disponibles ultérieurement*", icon=":material/info:")
+else:
+    st.container(height=200, border=False)
+    with st.container():
+        # Affichage si une ou plusieurs clés d'API sont introuvables
+        if st.session_state["found_api_keys"] is False:
+            # Message d'erreur
+            st.error(
+                "**Application indisponible :** "
+                "Une ou plusieurs clés d'API sont introuvables.",
+                icon=":material/error:",
+            )
+        else:
+            # Logo de l'application
+            cols = st.columns([1, 1, 1])
+            with cols[1]:
+                st.image("ressources/icon.png", width=300)
+
+            if len(st.session_state["research"]) < 5:
+                # Barre de saisie de question
+                research = st.chat_input("🔍", key="new_research")
+
+                if research:
+                    st.session_state["initial_research"] = research
+                    create_new_research(research)
+                    st.rerun()
+            else:
+                # Message d'information
+                st.info(
+                    "Nombre maximal de recherches atteint, "
+                    "supprimez-en une pour en commencer une nouvelle",
+                    icon=":material/error:",
+                )

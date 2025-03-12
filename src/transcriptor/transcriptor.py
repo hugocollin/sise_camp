@@ -1,3 +1,7 @@
+"""
+Ce fichier contient le module de transcription des vidéos YouTube en texte
+"""
+
 import os
 import requests
 import yt_dlp
@@ -43,7 +47,7 @@ class Transcriptor:
             ydl.download([self.url])
         mp3_files = [f for f in os.listdir() if f.endswith('.mp3')]
         return mp3_files[0]
-    
+
     def audio_chunks(self, mp3_file: str, chunk_length_ms: int = 600000):
         """
         Découpe un fichier audio en segments de 10 minutes maximum.
@@ -88,7 +92,7 @@ class Transcriptor:
             return result.get("text", response.text)
         except Exception:
             return response.text
-    
+
     def transcribe_audio(self, chunks) -> str:
         """
         Transcrit l’ensemble des segments audio et renvoie la transcription complète.
@@ -107,7 +111,7 @@ class Transcriptor:
             return " ".join(transcription_parts)
         else:
             return self.get_transcription(chunks[0])
-        
+   
     def transcription_enhancement(self, transcription: str) -> str:
         """
         Améliore la transcription en utilisant un modèle de langage.
@@ -129,7 +133,7 @@ class Transcriptor:
             }]
         )
         return transcription
-    
+
     def transcribe(self) -> str:
         """
         Transcrit une vidéo YouTube en texte.
