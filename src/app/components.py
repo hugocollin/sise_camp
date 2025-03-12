@@ -126,9 +126,9 @@ def show_sidebar() -> str:
             if st.button("", icon=":material/home:", use_container_width=True):
                 st.session_state["selected_research"] = None
 
-        # Bouton pour ajouter une recherche
+        # Bouton pour ajouter une vidéo YouTube
         with cols[1]:
-            if st.button("", icon=":material/add_circle:", use_container_width=True):
+            if st.button("", icon=":material/youtube_activity:", use_container_width=True):
                 show_add_video_dialog()
 
         # Bouton pour afficher les informations sur l'application
@@ -208,7 +208,7 @@ def show_add_video_dialog():
     youtube_url = st.text_input("Lien de la vidéo YouTube")
 
     # Récupération de la transcription
-    if st.button("Ajouter la vidéo"):
+    if st.button(":material/add_circle: Ajouter la vidéo"):
         with st.status("**Transcription de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**", expanded=True) as status:
             transcriptor = Transcriptor(youtube_url)
             transcription = transcriptor.transcribe()
