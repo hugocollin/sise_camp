@@ -9,7 +9,7 @@ class YouTubeManager:
     Classe pour gérer les vidéos YouTube, extraire leurs informations
     et les stocker dans une base de données SQLite.
     """
-    
+
     def __init__(self, db_path='src/videos_youtube.db'):
         """
         Initialise le gestionnaire de vidéos YouTube.
@@ -19,7 +19,7 @@ class YouTubeManager:
         """
         self.db_path = db_path
         self._setup_database()
-    
+
     def _setup_database(self):
         """
         Configure la structure de la base de données.

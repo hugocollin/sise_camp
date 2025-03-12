@@ -59,9 +59,9 @@ else:
             )
         else:
             # Logo de l'application
-            cols = st.columns([1, 1, 1])
+            cols = st.columns([1, 2.5, 1])
             with cols[1]:
-                st.image("ressources/icon.png", width=300)
+                st.image("ressources/logo.png", use_container_width=True)
 
             if len(st.session_state["research"]) < 5:
                 # Barre de saisie de question
