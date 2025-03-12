@@ -10,7 +10,7 @@ class YouTubeManager:
     et les stocker dans une base de données SQLite.
     """
     
-    def __init__(self, db_path='videos_youtube.db'):
+    def __init__(self, db_path='src/videos_youtube.db'):
         """
         Initialise le gestionnaire de vidéos YouTube.
         
@@ -35,7 +35,9 @@ class YouTubeManager:
             title TEXT,
             upload_date TEXT,
             description TEXT,
-            duration INTEGER
+            duration INTEGER, 
+            transcription TEXT, 
+            resume TEXT
         )
         ''')
 
@@ -62,7 +64,6 @@ class YouTubeManager:
 
         conn.commit()
         conn.close()
-        print(" Database initialized successfully")
     
     def extract_chapters(self, description):
         """
@@ -74,7 +75,7 @@ class YouTubeManager:
         Returns:
             list: Liste de tuples (timestamp, sous-titre)
         """
-        pattern = r'(\d{2}:\d{2}) (.+)'  # Matches '00:00 Subtitle text'
+        pattern = r'(\d{2}:\d{2}) (.+)'
         matches = re.findall(pattern, description)
         return matches
     
@@ -133,7 +134,9 @@ class YouTubeManager:
                 'description': cleaned_description,
                 'duration': info.get('duration', 0),
                 'tags': info.get('tags', []),
-                'chapters': chapters
+                'chapters': chapters, 
+                'transcription': None, 
+                'resume': None
             }
 
             return video_data
@@ -179,14 +182,16 @@ class YouTubeManager:
 
         # Insert video data
         cursor.execute('''
-        INSERT OR REPLACE INTO videos (url, title, upload_date, description, duration)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO videos (url, title, upload_date, description, duration, transcription, resume)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             video_info['url'],
             video_info['title'],
             video_info['upload_date'],
             video_info['description'],
-            video_info['duration']
+            video_info['duration'], 
+            video_info['transcription'], 
+            video_info['resume']
         ))
 
         video_id = cursor.lastrowid 
@@ -235,6 +240,80 @@ class YouTubeManager:
             print(f" Error processing video {url}: {e}")
             return None
     
+    def add_transcription(self, url, transcription_text):
+        """
+        Ajoute une transcription fournie à une vidéo existante dans la base de données.
+        
+        Args:
+            url (str): URL de la vidéo
+            transcription_text (str): Texte de transcription à ajouter
+                
+        Returns:
+            bool: True si la transcription a été ajoutée avec succès, False sinon
+        """
+        print(f"\nAdding transcription for URL: {url}")
+        
+        if not self.url_exists(url):
+            print(f"Video does not exist in database: {url}")
+            return False
+        
+        try:
+            # Mettre à jour la base de données avec la transcription
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+            UPDATE videos 
+            SET transcription = ? 
+            WHERE url = ?
+            ''', (transcription_text, url))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"Successfully added transcription for video: {url}")
+            return True
+        except Exception as e:
+            print(f"Error adding transcription for URL {url}: {str(e)}")
+            return False
+        
+    def add_resume(self, url, resume):
+        """
+        Ajoute une transcription fournie à une vidéo existante dans la base de données.
+        
+        Args:
+            url (str): URL de la vidéo
+            resume (str): Resumé à ajouter
+                
+        Returns:
+            bool: True si le résumé a été ajouté avec succès, False sinon
+        """
+        print(f"\nAdding Résumé for URL: {url}")
+        
+        if not self.url_exists(url):
+            print(f"Video does not exist in database: {url}")
+            return False
+        
+        try:
+            # Mettre à jour la base de données avec la transcription
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+            UPDATE videos 
+            SET resume = ? 
+            WHERE url = ?
+            ''', (resume, url))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"Successfully added transcription for video: {url}")
+            return True
+        except Exception as e:
+            print(f"Error adding transcription for URL {url}: {str(e)}")
+            return False
+    
     def process_videos_from_file(self, file_path):
         """
         Traite les URLs de vidéos YouTube contenues dans un fichier. Pour monter la base de données avec les vidéos prédéfinies.
@@ -275,8 +354,22 @@ class YouTubeManager:
                     errors += 1
         
         print(f"\n {processed} processing file")
+    
+    def reset_database(self):
+        """
+        Réinitialise la base de données en supprimant toutes les données.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM videos')
+        cursor.execute('DELETE FROM tags')
+        cursor.execute('DELETE FROM video_chapters')
+        
+        conn.commit()
+        conn.close()
+        print(" Database reset successfully")
 
-# Ajouter une fonction à partir d'une url de vidéos
     def add_new_video(self, url):
         """
         Ajoute une URL YouTube à la base de données.
@@ -307,8 +400,14 @@ class YouTubeManager:
 if __name__ == "__main__":
     db = YouTubeManager()
     
-    # Pour monter la base de données 
-    db.process_videos_from_file("links.txt")
+    # Pour initialiser la base de données avec les données dedans
+    db.process_videos_from_file("src/links.txt")
+
+    # Pour insérer un résumé
+    #db.add_resume("https://www.youtube.com/watch?v=gQYp_CYCGVM", "Ceci est un résumé tout à fait intéressant")
 
     # Pour ajouter une seule vidéo
-    #db.add_new_video("https://www.youtube.com/watch?v=3KQG24jBpHg")
+    # db.add_new_video("https://www.youtube.com/watch?v=3KQG24jBpHg")
+
+    # Pour ajouter une transcription à une vidéo existante
+    # db.add_transcription("https://www.youtube.com/watch?v=gQYp_CYCGVM", "Ceci est une transcription de test ")
