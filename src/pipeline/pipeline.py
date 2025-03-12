@@ -1,5 +1,5 @@
 """
-Ce fichier contient le module de transcription des vidéos YouTube en texte
+Ce fichier contient le pipeline de traitement des données des informations d'une vidéo YouTube.
 """
 
 import os
@@ -12,9 +12,9 @@ from pydub import AudioSegment
 from src.llm.llm import LLM
 from src.db.db_youtube import YouTubeManager
 
-class Transcriptor:
+class Pipeline:
     """
-    Classe pour transcrire une vidéo YouTube en texte.
+    Classe pour la récupération des informations d'une vidéo YouTube.
     """
     def __init__(self, url):
         """

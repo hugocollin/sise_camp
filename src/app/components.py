@@ -6,7 +6,7 @@ import os
 from dotenv import find_dotenv, load_dotenv
 import streamlit as st
 
-from src.transcriptor.transcriptor import Transcriptor
+from src.pipeline.pipeline import Pipeline
 
 
 def load_api_keys():
@@ -211,25 +211,25 @@ def show_add_video_dialog():
     if st.button(":material/add_circle: Ajouter la vidéo"):
         with st.status("**Traitement de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**", expanded=True) as status:
             st.write("Initialisation...")
-            transcriptor = Transcriptor(youtube_url)
+            pipeline = Pipeline(youtube_url)
 
             st.write("Récupération de l'audio...")
-            mp3_file = transcriptor.get_mp3()
+            mp3_file = pipeline.get_mp3()
 
             st.write("Préparation de l'audio pour la transcription...")
-            chunks = transcriptor.audio_chunks(mp3_file)
+            chunks = pipeline.audio_chunks(mp3_file)
 
             st.write("Transcription de l'audio...")
-            transcription = transcriptor.transcribe_audio(chunks)
+            transcription = pipeline.transcribe_audio(chunks)
 
             st.write("Amélioration de la transcription...")
-            transcription = transcriptor.transcription_enhancement(transcription)
+            transcription = pipeline.transcription_enhancement(transcription)
 
             st.write("Création du résumé...")
-            summary = transcriptor.create_summary(transcription)
+            summary = pipeline.create_summary(transcription)
 
             st.write("Enregistrement des informations...")
-            transcriptor.update_video_info(transcription, summary)
+            pipeline.update_video_info(transcription, summary)
             
             st.write("Finalisation...")
             if os.path.exists(mp3_file):
