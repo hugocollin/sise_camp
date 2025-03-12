@@ -210,8 +210,25 @@ def show_add_video_dialog():
     # Récupération de la transcription
     if st.button(":material/add_circle: Ajouter la vidéo"):
         with st.status("**Transcription de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**", expanded=True) as status:
+            st.write("Initialisation...")
             transcriptor = Transcriptor(youtube_url)
-            transcription = transcriptor.transcribe()
+            
+            st.write("Récupération de l'audio de la vidéo...")
+            mp3_file = transcriptor.get_mp3()
+            
+            st.write("Préparation de l'audio pour la transcription...")
+            chunks = transcriptor.audio_chunks(mp3_file)
+            
+            st.write("Transcription de l'audio...")
+            transcription = transcriptor.transcribe_audio(chunks)
+
+            st.write("Amélioration de la transcription...")
+            transcription = transcriptor.transcription_enhancement(transcription)
+
+            st.write("Finalisation...")
+            if os.path.exists(mp3_file):
+                os.remove(mp3_file)
+            
             status.update(
                 label="**La transcription de la vidéo a été récupérée avec succès ! Vous pouvez maintenant fermer la fenêtre.**",
                 state="complete",

@@ -3,10 +3,10 @@ Ce fichier contient le module de transcription des vidéos YouTube en texte
 """
 
 import os
+from io import BytesIO
 import requests
 import yt_dlp
 import streamlit as st
-from io import BytesIO
 from pydub import AudioSegment
 
 from src.llm.llm import LLM
@@ -132,21 +132,4 @@ class Transcriptor:
                 "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général du discours : {transcription}"
             }]
         )
-        return transcription
-
-    def transcribe(self) -> str:
-        """
-        Transcrit une vidéo YouTube en texte.
-
-        Returns:
-            str: Transcription de la vidéo.
-        """
-        mp3_file = self.get_mp3()
-        chunks = self.audio_chunks(mp3_file)
-        transcription = self.transcribe_audio(chunks)
-        transcription = self.transcription_enhancement(transcription)
-
-        if os.path.exists(mp3_file):
-            os.remove(mp3_file)
-
         return transcription
