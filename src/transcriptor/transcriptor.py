@@ -10,6 +10,7 @@ import streamlit as st
 from pydub import AudioSegment
 
 from src.llm.llm import LLM
+from src.db.db_youtube import YouTubeManager
 
 class Transcriptor:
     """
@@ -111,7 +112,7 @@ class Transcriptor:
             return " ".join(transcription_parts)
         else:
             return self.get_transcription(chunks[0])
-   
+
     def transcription_enhancement(self, transcription: str) -> str:
         """
         Améliore la transcription en utilisant un modèle de langage.
@@ -129,7 +130,37 @@ class Transcriptor:
             temperature=0.5,
             prompt_dict=[{
                 "role": "user",
-                "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général du discours : {transcription}"
+                "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général de la vidéo : {transcription}"
             }]
         )
         return transcription
+    
+    def create_summary(self, transcription: str) -> str:
+        """
+        Crée un résumé de la transcription.
+
+        Args:
+            transcription (str): Transcription de la vidéo.
+
+        Returns:
+            str: Résumé de la transcription.
+        """
+        llm = LLM()
+        summary = llm.call_model(
+            provider="mistral",
+            model="ministral-8b-latest",
+            temperature=0.7,
+            prompt_dict=[{
+                "role": "user",
+                "content": f"Crée un résumé de la transcription de l'audio d'une vidéo YouTube. Le résumé doit être concis et refléter les idées principales de la vidéo : {transcription}"
+            }]
+        )
+        return summary
+
+    def update_video_info(self, transcription: str, summary: str) -> bool:
+        """
+        Met à jour la base de données avec la transcription et le résumé de la vidéo.
+        """
+        db_manager = YouTubeManager()
+        db_manager.add_transcription(self.url, transcription)
+        db_manager.add_resume(self.url, summary)

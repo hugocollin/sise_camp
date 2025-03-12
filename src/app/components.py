@@ -118,7 +118,7 @@ def show_sidebar() -> str:
     with st.sidebar:
         # Logo de l'application
         st.image("ressources/icon.png", width=150)
-        
+
         cols = st.columns([1, 1, 1, 2])
 
         # Bouton pour revenir à l'accueil
@@ -209,13 +209,13 @@ def show_add_video_dialog():
 
     # Récupération de la transcription
     if st.button(":material/add_circle: Ajouter la vidéo"):
-        with st.status("**Transcription de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**", expanded=True) as status:
+        with st.status("**Traitement de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**", expanded=True) as status:
             st.write("Initialisation...")
             transcriptor = Transcriptor(youtube_url)
 
-            st.write("Récupération de l'audio de la vidéo...")
+            st.write("Récupération de l'audio...")
             mp3_file = transcriptor.get_mp3()
-  
+
             st.write("Préparation de l'audio pour la transcription...")
             chunks = transcriptor.audio_chunks(mp3_file)
 
@@ -225,6 +225,12 @@ def show_add_video_dialog():
             st.write("Amélioration de la transcription...")
             transcription = transcriptor.transcription_enhancement(transcription)
 
+            st.write("Création du résumé...")
+            summary = transcriptor.create_summary(transcription)
+
+            st.write("Enregistrement des informations...")
+            transcriptor.update_video_info(transcription, summary)
+            
             st.write("Finalisation...")
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)
@@ -234,7 +240,6 @@ def show_add_video_dialog():
                 state="complete",
                 expanded=False,
             )
-        st.write(transcription)
 
 @st.dialog("Informations sur l'application", width="large")
 def show_info_dialog():
