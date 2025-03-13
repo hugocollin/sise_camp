@@ -249,6 +249,20 @@ class YouTubeManager:
         except Exception as e:
             print(f" Error processing video {url}: {e}")
             return None
+        
+    def get_pending_videos(self):
+        """
+        Récupère les vidéos dont fully_processed vaut 0.
+        
+        Returns:
+            list: Liste de tuples (title, url) des vidéos non traitées.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT title, url FROM videos WHERE fully_processed=0")
+        videos = cursor.fetchall()
+        conn.close()
+        return videos
 
     def add_transcription(self, url, transcription_text):
         """
@@ -322,6 +336,19 @@ class YouTubeManager:
         except Exception as e:
             print(f"Error adding resume for URL {url}: {str(e)}")
             return False
+
+    def mark_video_as_processed(self, url):
+        """
+        Met à jour une vidéo pour indiquer qu'elle a été traitée (fully_processed = 1).
+
+        Args:
+            url (str): URL de la vidéo.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE videos SET fully_processed = 1 WHERE url = ?", (url,))
+        conn.commit()
+        conn.close()
 
     def process_videos_from_file(self, file_path):
         """
