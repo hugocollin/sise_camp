@@ -26,8 +26,10 @@ Ce projet permet aux utilisateurs de :
 2. Obtenir la vidéo la plus pertinente en fonction de la recherche, accompagnée d'un résumé et du passage exact correspondant à la requête.
    
 3. Ajouter de nouvelle vidéo provenant de la chaîne YoutTube [MASTER 2 SISE DATA SCIENCE](https://www.youtube.com/@master2sisedatascience) à la base de données. 
+
+4. Obtenir un quizz généré par LLM basée sur la recherche
    
-4.  Utiliser l'application en ligne ou l'exécuter localement.
+5.  Utiliser l'application en ligne ou l'exécuter localement.
 
 ## 🔧 Technologies Utilisées
 
@@ -51,6 +53,7 @@ Ce projet permet aux utilisateurs de :
 │   ├── faiss_index_chapters.bin
 │   └── faiss_index_transcripts.bin
 ├── main.py
+├── .env
 ├── docker-compose.yml
 ├── dockerfile
 ├── docker-requirements.txt
