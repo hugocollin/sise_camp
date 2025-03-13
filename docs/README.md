@@ -1,6 +1,5 @@
- 
 <div align="center">
-  <img src="../ressources/icon.png" alt="SISE Camp Logo">
+  <img src="../ressources/icon.png" alt="SISE Camp Logo" width="150">
 </div>
 
 
