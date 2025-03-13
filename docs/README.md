@@ -27,7 +27,7 @@ Ce projet permet aux utilisateurs de :
    
 3. Ajouter de nouvelle vidéo provenant de la chaîne YoutTube [MASTER 2 SISE DATA SCIENCE](https://www.youtube.com/@master2sisedatascience) à la base de données. 
 
-4. Obtenir un quizz généré par LLM basée sur la recherche
+4. Obtenir un quizz généré par LLM basée sur la recherche.
    
 5.  Utiliser l'application en ligne ou l'exécuter localement.
 
@@ -52,17 +52,11 @@ Ce projet permet aux utilisateurs de :
 ├── indexs/
 │   ├── faiss_index_chapters.bin
 │   └── faiss_index_transcripts.bin
-├── main.py
-├── .env
-├── docker-compose.yml
-├── dockerfile
-├── docker-requirements.txt
-├── packages.txt
-├── requirements.txt
 ├── ressources/
 │   ├── favicon.png
 │   ├── icon.png
-│   └── logo.png
+│   ├── logo.png
+│   └── research.gif
 ├── src/
 │   ├── app/
 │   │   └── components.py
@@ -71,13 +65,22 @@ Ce projet permet aux utilisateurs de :
 │   ├── llm/
 │   │   └── llm.py
 │   ├── pipeline/
+│   │   ├── pipeline_chapitres.py
+│   │   ├── pipeline_transcript.py
 │   │   └── pipeline.py
+│   ├── preprocessing/
+│   │   └── preprocess.py
 │   ├── search_engine/
 │   │   └── search_engine.py
 │   └── videos_youtube.db
-└── notebooks/
-    ├── FI_chapters.ipynb
-    └── FI_transcriptions.ipynb
+├── .env
+├── .gitignore
+├── docker-compose.yml
+├── docker-requirements.txt
+├── dockerfile
+├── main.py
+├── packages.txt
+└── requirements.txt
 ```
 ## 🚀 Installation
 
@@ -162,7 +165,4 @@ Toutes les contributions sont les bienvenues ! Voici comment vous pouvez contrib
 
 ## 👤 Auteurs
 
-Ce projet a été réalisé par [Yacine AYACHI](https://github.com/YacineAyachi), [Hugo COLLIN](https://github.com/hugocollin) , [Pierre BOURBON](https://github.com/pbrbn) et [Lucile PERBET](https://github.com/lucilecpp) dans le cadre de challenge de Web Minning du Master *SISE* à l'Université Lumière Lyon 2. 
-
-
-
+Ce projet a été réalisé par [Yacine AYACHI](https://github.com/YacineAyachi), [Hugo COLLIN](https://github.com/hugocollin) , [Pierre BOURBON](https://github.com/pbrbn) et [Lucile PERBET](https://github.com/lucilecpp) dans le cadre de challenge de Web Minning du Master *SISE* à l'Université Lumière Lyon 2.
