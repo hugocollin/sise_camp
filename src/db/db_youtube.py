@@ -581,6 +581,67 @@ class YouTubeManager:
         except Exception as e:
             print(f"Erreur lors de la mise à jour de {url}: {str(e)}")
             return False
+        
+    def create_chunks_table(self, csv_file):
+        """
+        Ajoute une table 'chunks' avec trois colonnes (id, video_id, chunks) à la base de données existante.
+        Insère ensuite les données à partir d'un fichier CSV en respectant la conversion des IDs.
+
+        Args:
+            csv_file (str): Chemin du fichier CSV.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Vérifier si la table chunks existe déjà
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chunks'")
+        table_exists = cursor.fetchone()
+
+        if not table_exists:
+            # Créer la table avec une clé étrangère vers videos(id)
+            cursor.execute('''
+                CREATE TABLE chunks (
+                    id INTEGER PRIMARY KEY,
+                    video_id INTEGER,
+                    chunks TEXT,
+                    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE
+                )
+            ''')
+            print("Table 'chunks' créée avec succès.")
+
+        # Lire et insérer les données du CSV
+        with open(csv_file, newline='', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            next(reader)  # Ignorer l'en-tête
+
+            for row in reader:
+                chunk_id = int(row[0])  # Convertir l'ID en entier
+                chunk_text = row[1]  
+
+                # Extraire les 2 premiers chiffres de chunk_id
+                prefix = int(str(chunk_id))
+
+                # Mapping des IDs
+                if 10000 <= prefix <= 300000:  
+                    video_id = prefix // 10000
+                else:
+                    print(f"⚠️ Chunk ignoré: {chunk_id} (ID non reconnu)")
+                    continue
+
+                # Vérifier si la vidéo existe avant d'insérer le chunk
+                cursor.execute('SELECT id FROM videos WHERE id = ?', (video_id,))
+                video_exists = cursor.fetchone()
+
+                if video_exists:
+                    cursor.execute('INSERT INTO chunks (id, video_id, chunks) VALUES (?, ?, ?)', 
+                                   (chunk_id, video_id, chunk_text))
+                else:
+                    print(f"⚠️ Aucune vidéo trouvée pour video_id={video_id}, chunk ignoré: {chunk_id}")
+
+        conn.commit()
+        conn.close()
+        print("✅ Données insérées dans la table 'chunks'.")
+
 
 if __name__ == "__main__":
     db = YouTubeManager()

@@ -78,7 +78,7 @@ if (
     # Informations sur la recherche
     current_research = st.session_state["selected_research"]
     st.write_stream(stream_text(f"**{current_research}**"))
-    st.warning(body=f"**{st.session_state["research"][current_research]["text"]}**", icon=":material/search:")
+    st.warning(body=f"**{st.session_state['research'][current_research]['text']}**", icon=":material/search:")
     st.warning(
         "*Résultats de la recherche disponibles ultérieurement*", icon=":material/info:"
     )
