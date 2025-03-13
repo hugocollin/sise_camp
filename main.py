@@ -18,11 +18,12 @@ st.set_page_config(
     page_title="SISE Camp", page_icon="ressources/favicon.png", layout="wide"
 )
 
-st.markdown(
+# Mise en page personnalisée
+st.html(
     """
     <style>
         .block-container {
-            padding-top: 50px;
+            padding-top: 0px;
             padding-bottom: 0px;
             animation: fadeIn 1s ease-in;
         }
@@ -49,25 +50,11 @@ st.markdown(
             transform: scale(1.05);
         }
     </style>
-""",
-    unsafe_allow_html=True,
+    """
 )
 
 # Chargement des clés API
 load_api_keys()
-
-# Mise en page personnalisée
-st.markdown(
-    """
-    <style>
-        .block-container {
-            padding-top: 50px;
-            padding-bottom: 0px;
-        }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
 
 # Affichage de la barre latérale
 SELECTED_RESEARCH = show_sidebar()
@@ -108,19 +95,21 @@ else:
             with cols[1]:
                 st.image("ressources/logo.png", use_container_width=True)
 
-            if len(st.session_state["research"]) < 5:
-                # Barre de saisie de question
-                research = st.chat_input("🔍", key="new_research")
+            cols = st.columns([1, 5, 1])
+            with cols[1]:
+                if len(st.session_state["research"]) < 5:
+                    # Barre de saisie de question
+                    research = st.chat_input("🔍", key="new_research")
 
-                if research:
-                    st.session_state["initial_research"] = research
-                    create_new_research(research)
-                    generate_research_name(research)
-                    st.rerun()
-            else:
-                # Message d'information
-                st.warning(
-                    "Nombre maximal de recherches atteint, "
-                    "supprimez-en une pour en commencer une nouvelle",
-                    icon=":material/error:",
-                )
+                    if research:
+                        st.session_state["initial_research"] = research
+                        create_new_research(research)
+                        generate_research_name(research)
+                        st.rerun()
+                else:
+                    # Message d'information
+                    st.warning(
+                        "Nombre maximal de recherches atteint, "
+                        "supprimez-en une pour en commencer une nouvelle",
+                        icon=":material/error:",
+                    )
