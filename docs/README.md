@@ -159,7 +159,7 @@ Ouvrez une Pull Request.
 
 ## 👤 Auteurs
 
-Ce projet a été réalisé par [Yacine AYACHI](https://github.com/YacineAyachi), [Hugo COLLIN]([https://github.com/hugocollin]) , [Pierre BOURBON](https://github.com/pbrbn) et [Lucile PERBET](https://github.com/lucilecpp) dans le cadre de challenge de Web Minning du Master *SISE* à l'Université Lumière Lyon 2. 
+Ce projet a été réalisé par [Yacine AYACHI](https://github.com/YacineAyachi), [Hugo COLLIN](https://github.com/hugocollin) , [Pierre BOURBON](https://github.com/pbrbn) et [Lucile PERBET](https://github.com/lucilecpp) dans le cadre de challenge de Web Minning du Master *SISE* à l'Université Lumière Lyon 2. 
 
 
 
