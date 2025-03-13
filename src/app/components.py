@@ -46,6 +46,21 @@ def stream_text(text: str):
         time.sleep(0.03)
 
 
+def update_progress(progress_bar: st.progress, message_placeholder: st.empty, step: int, total_steps: int, message: str):
+    """
+    Met à jour le message et la barre de progression.
+
+    Args:
+        progress_bar (st.progress): Barre de progression.
+        message_placeholder (st.empty): Emplacement du message.
+        step (int): Étape actuelle.
+        total_steps (int): Nombre total d'étapes.
+        message (str): Message à afficher.
+    """
+    message_placeholder.text(f"[{step}/{total_steps}] {message}")
+    progress_bar.progress(int(step / total_steps * 100))
+
+
 def create_new_research(research: str):
     """
     Fonction pour créer une nouvelle recherche.
@@ -292,29 +307,37 @@ def show_add_video_dialog():
             "**Ajout de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**",
             expanded=True,
         ) as status:
-            st.write("Initialisation...")
+            # Initialisation de la barre de progression
+            progress_bar = st.progress(0)
+            message_placeholder = st.empty()
+            total_steps = 9
+
+            update_progress(progress_bar, message_placeholder, 1, total_steps, "Initialisation...")
             youtube_url = video_dict[selected_title]
             pipeline = Pipeline(youtube_url)
 
-            st.write("Récupération de l'audio...")
+            update_progress(progress_bar, message_placeholder, 2, total_steps, "Récupération des informations...")
+            db_youtube.add_video_details(youtube_url)
+
+            update_progress(progress_bar, message_placeholder, 3, total_steps, "Récupération de l'audio...")
             mp3_file = pipeline.get_mp3()
 
-            st.write("Préparation de l'audio pour la transcription...")
+            update_progress(progress_bar, message_placeholder, 4, total_steps, "Préparation de l'audio pour la transcription...")
             chunks = pipeline.audio_chunks(mp3_file)
 
-            st.write("Transcription de l'audio...")
+            update_progress(progress_bar, message_placeholder, 5, total_steps, "Transcription de l'audio...")
             transcription = pipeline.transcribe_audio(chunks)
 
-            st.write("Amélioration de la transcription...")
+            update_progress(progress_bar, message_placeholder, 6, total_steps, "Amélioration de la transcription...")
             transcription = pipeline.transcription_enhancement(transcription)
 
-            st.write("Création du résumé...")
+            update_progress(progress_bar, message_placeholder, 7, total_steps, "Création du résumé...")
             summary = pipeline.create_summary(transcription)
 
-            st.write("Enregistrement des informations...")
+            update_progress(progress_bar, message_placeholder, 8, total_steps, "Enregistrement des informations...")
             pipeline.update_video_info(transcription, summary)
 
-            st.write("Finalisation...")
+            update_progress(progress_bar, message_placeholder, 9, total_steps, "Finalisation...")
             db_youtube.mark_video_as_processed(youtube_url)
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)

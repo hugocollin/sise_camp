@@ -65,6 +65,11 @@ if SELECTED_RESEARCH:
 elif "selected_research" not in st.session_state and SELECTED_RESEARCH:
     st.session_state["selected_research"] = SELECTED_RESEARCH
 
+# video_id = "D__sO3x0FzQ"
+# start_time = 500  # en secondes
+# embed_url = f"https://www.youtube.com/embed/{video_id}?start={start_time}"
+# st.components.v1.iframe(embed_url, height=315, width=560)
+
 # Affichage de la recherche sélectionnée
 if (
     "selected_research" in st.session_state
