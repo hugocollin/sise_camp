@@ -15,7 +15,7 @@ from src.db.db_youtube import YouTubeManager
 
 class Pipeline:
     """
-    Classe pour la récupération des informations d'une vidéo YouTube.
+    Classe pour l'ajout d'une vidéo YouTube.
     """
 
     def __init__(self, url):
