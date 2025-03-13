@@ -111,7 +111,7 @@ else:
                             st.session_state["research_in_progress"] = True
                             st.session_state["initial_research"] = research
                             st.rerun()
-                
+
                     # Traitement de la recherche si elle existe et qu'elle est en cours
                     if st.session_state["research_in_progress"] and "initial_research" in st.session_state:
                         research = st.session_state["initial_research"]

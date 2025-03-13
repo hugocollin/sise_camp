@@ -668,8 +668,11 @@ class YouTubeManager:
                 "transcription": row[6],
                 "resume": row[7]
             }
-            cursor.execute("SELECT timestamp, subtitle FROM video_chapters WHERE id = ?", (chapter_id,))
-            chapter = cursor.fetchone()
+            if chapter_id:
+                cursor.execute("SELECT timestamp, subtitle FROM video_chapters WHERE id = ?", (chapter_id,))
+                chapter = cursor.fetchone()
+            else:
+                chapter = None
             video["chapter"] = chapter
             cursor.execute("SELECT tag_name FROM tags WHERE video_id = ?", (video_id,))
             tags = [r[0] for r in cursor.fetchall()]

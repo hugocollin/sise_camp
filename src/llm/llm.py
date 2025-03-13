@@ -77,18 +77,18 @@ class LLM:
         Retourne une liste de tuples (id_chunk, embedding).
         """
         embeddings_with_ids = []
-        
+
         for chunk in chunk_list:
             # Chaque chunk est un tuple (id, list of tokens)
             chunk_id, chunk_tokens = chunk
-            
+
             # Joindre les tokens en une chaîne de texte
             prompt = " ".join(chunk_tokens)
-            
+
             # Utiliser la fonction generate_prompt_embedding pour obtenir l'embedding
             embedding = self.generate_prompt_embedding(prompt)
-            
+
             # Ajouter un tuple (chunk_id, embedding) à la liste
             embeddings_with_ids.append((chunk_id, embedding))
-        
+
         return embeddings_with_ids
