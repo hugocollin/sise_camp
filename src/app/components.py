@@ -282,6 +282,10 @@ def show_add_video_dialog():
         options=list(video_dict.keys())
     )
 
+    # Prévisualisation de la vidéo à ajouter
+    youtube_url = video_dict[selected_title]
+    st.video(youtube_url)
+
     # Récupération de la transcription
     if st.button(":material/add_circle: Ajouter la vidéo"):
         with st.status(
