@@ -3,6 +3,7 @@ Ce fichier contient le module pour gérer les modèles de langage.
 """
 
 import litellm
+import time
 
 class LLM:
     """
@@ -90,5 +91,8 @@ class LLM:
 
             # Ajouter un tuple (chunk_id, embedding) à la liste
             embeddings_with_ids.append((chunk_id, embedding))
+
+            #Pause 
+            time.sleep(2)
 
         return embeddings_with_ids
