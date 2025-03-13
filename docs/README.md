@@ -1,5 +1,8 @@
  
-![SISE Camp Logo](../ressources/icon.png)
+<div align="center">
+  <img src="../ressources/icon.png" alt="SISE Camp Logo">
+</div>
+
 
 Cette application Streamlit permet d'effectuer des recherches sur la transcription des vidéos youtube de la chaîne YouTube [MASTER 2 SISE DATA SCIENCE](https://www.youtube.com/@master2sisedatascience). 
 
