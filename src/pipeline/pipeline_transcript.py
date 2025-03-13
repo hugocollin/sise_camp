@@ -39,7 +39,7 @@ class Pipeline_Transcript_Faiss:
             chunks = self.processor.process_text(text)
 
             for chunk_id, chunk in enumerate(chunks, start=1):
-                formatted_id = f"{original_id:02d}{chunk_id:04d}"
+                formatted_id = f"{original_id:03d}{chunk_id:04d}"
                 chunk_list.append((formatted_id, chunk))
 
         return chunk_list
@@ -48,8 +48,10 @@ class Pipeline_Transcript_Faiss:
         """Ajoute les chunks à la base de données après avoir joint les tokens."""
         if len(str(chunk_list[0][0])) == 5:
             vid_id = str(chunk_list[0][0])[:1]
-        else:
+        elif len(str(chunk_list[0][0])) == 6:
             vid_id = str(chunk_list[0][0])[:2]
+        else :
+            vid_id = str(chunk_list[0][0])[:3]
 
         # Connexion à la base de données
         conn = sqlite3.connect(self.db_path)

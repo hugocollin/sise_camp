@@ -38,7 +38,7 @@ class Pipeline_Chapters_Faiss:
             time.sleep(2)
 
         #Générer la liste des nouveaux IDs
-        new_ids = [f"{grp:02}{id_:03}" for id_, grp, _ in results]
+        new_ids = [f"{grp:03}{id_:04}" for id_, grp, _ in results]
 
         return [list_embd, new_ids]
 

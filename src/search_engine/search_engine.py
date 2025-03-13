@@ -21,11 +21,14 @@ class SearchEngine:
         
         #Formatage des résultats 
         if len(str(results[0][0])) == 5 :
-            chunk_id = "0" + str(results[0][0]) 
+            chunk_id = "00" + str(results[0][0]) 
             vid_id = str(results[0][0])[:1]
+        elif len(str(results[0][0])) == 6:
+            chunk_id = "0" + str(results[0][0]) 
+            vid_id = str(results[0][0])[:2]
         else :
             chunk_id = str(results[0][0]) 
-            vid_id = str(results[0][0])[:2]
+            vid_id = str(results[0][0])[:3]
 
         return {
             "prompt_embedding": prompt_embedding,
@@ -54,11 +57,14 @@ class SearchEngine:
 
         #Formatage des résultats 
         if len(str(results[0][0])) == 4 :
-            chapter_id = str(results[0][0])[-3:]
+            chapter_id = str(results[0][0])[-4:]
             vid_id = str(results[0][0])[:1]
-        else :
-            chapter_id = str(results[0][0])[-3:]
+        elif len(str(results[0][0])) == 5 :
+            chapter_id = str(results[0][0])[-4:]
             vid_id = str(results[0][0])[:2]
+        else :
+            chapter_id = str(results[0][0])[-4:]
+            vid_id = str(results[0][0])[:3]
 
         if results_similarity["vid_id"] == vid_id : 
             return {
