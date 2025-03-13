@@ -84,6 +84,9 @@ class Pipeline_Transcript_Faiss:
         # Ajouter les embeddings à l'index Faiss avec les IDs
         self.index.add_with_ids(np.array(embeddings, dtype=np.float32), np.array(ids, dtype=np.int64))
 
+        # Sauvegarde des modifications
+        faiss.write_index(self.index, "indexs/faiss_index_transcripts.bin")
+
         print(f"Ajouté {len(embeddings_with_ids)} embeddings à l'index Faiss.")
 
     def run_pipeline(self, id_video: int):
