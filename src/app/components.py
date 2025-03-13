@@ -261,12 +261,12 @@ def show_research(current_research: str):
     with cols[1]:
         with st.container(border=True):
             st.subheader("**Informations sur la vidéo**")
-            st.write(f"**:material/play_circle: Titre :** {video_info["title"]}")
+            st.write(f"**:material/play_circle: Titre :** {video_info['title']}")
             if video_info["chapter"] is not None:
-                st.write(f"**:material/bookmark: Chapitre :** {format_chapter(video_info["chapter"])}")
+                st.write(f"**:material/bookmark: Chapitre :** {format_chapter(video_info['chapter'])}")
             st.write(f"**:material/hourglass: Durée :** {format_duration(video_info['duration'])}")
             st.write(f"**:material/today: Date  :** {format_upload_date(video_info['upload_date'])}")
-            st.write(f"**:material/link: Lien :** {video_info["url"]}")
+            st.write(f"**:material/link: Lien :** {video_info['url']}")
             st.pills(
                 label="**:material/tag: Tags :**",
                 options=video_info["tags"],
