@@ -81,14 +81,8 @@ class Pipeline_Transcript_Faiss:
             ids.append(chunk_id)  # Ajouter l'ID
             embeddings.append(embedding)  # Ajouter l'embedding
 
-        # Convertir les embeddings en tableau NumPy
-        embeddings_np = np.array(embeddings).astype(np.float32)
-
-        # Convertir les IDs en tableau NumPy
-        ids_np = np.array(ids).astype(np.int64)
-
         # Ajouter les embeddings à l'index Faiss avec les IDs
-        self.index.add_with_ids(embeddings_np, ids_np)
+        self.index.add_with_ids(np.array(embeddings, dtype=np.float32), np.array(ids, dtype=np.int64))
 
         print(f"Ajouté {len(embeddings_with_ids)} embeddings à l'index Faiss.")
 
@@ -108,8 +102,12 @@ class Pipeline_Transcript_Faiss:
         self.add_chunk_to_db(chunk_list)
         print(f"Chunks ajoutés à la base de données pour la vidéo {id_video}.")
 
+        print(f"Nombre total d'embeddings dans l'index Faiss : {self.index.ntotal}")
+
         # 4. Ajouter les embeddings à l'index Faiss
         self.add_embed_to_index(chunk_list)
         print(f"Embeddings ajoutés à l'index Faiss pour la vidéo {id_video}.")
+
+        print(f"Nombre total d'embeddings dans l'index Faiss : {self.index.ntotal}")
 
         print(f"Pipeline terminé pour la vidéo ID {id_video}.")
