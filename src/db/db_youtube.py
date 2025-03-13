@@ -201,7 +201,7 @@ class YouTubeManager:
             video_info['duration'], 
             video_info['transcription'], 
             video_info['resume'],
-            parsed  # ✅ Ajouter la valeur `parsed`
+            parsed  
         ))
 
         video_id = cursor.lastrowid 
@@ -243,7 +243,7 @@ class YouTubeManager:
         try:
             video_info = self.get_video_info(url)
             if video_info:
-                self.save_video(video_info, parsed=False)  # ✅ Ajouter les nouvelles vidéos avec `parsed=False`
+                self.save_video(video_info, parsed=False) 
                 return video_info
             return None
         except Exception as e:
@@ -305,7 +305,6 @@ class YouTubeManager:
             return False
         
         try:
-            # Mettre à jour la base de données avec la transcription
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
@@ -318,10 +317,10 @@ class YouTubeManager:
             conn.commit()
             conn.close()
             
-            print(f"Successfully added transcription for video: {url}")
+            print(f"Successfully added resume for video: {url}")
             return True
         except Exception as e:
-            print(f"Error adding transcription for URL {url}: {str(e)}")
+            print(f"Error adding resume for URL {url}: {str(e)}")
             return False
 
     def process_videos_from_file(self, file_path):
@@ -419,7 +418,7 @@ class YouTubeManager:
         """
         ydl_opts = {
             'quiet': True,
-            'extract_flat': True,  # Ne pas télécharger, juste récupérer les URLs
+            'extract_flat': True,  
             'skip_download': True
         }
 
@@ -483,6 +482,78 @@ class YouTubeManager:
         conn.close()
         print("\nBase de données mise à jour avec les nouvelles vidéos de la chaîne.")
 
+    def add_video_details(self, url):
+        """
+        Met à jour les informations d'une vidéo existante dans la base de données
+        (date de mise en ligne, description, durée, tags, chapitres).
+        
+        Args:
+            url (str): URL de la vidéo YouTube à mettre à jour
+            
+        Returns:
+            bool: True si la mise à jour a réussi, False sinon
+        """        
+        if not self.url_exists(url):
+            print(f"Vidéo non trouvée dans la base de données: {url}")
+            return False
+        
+        try:
+            # Récupérer les nouvelles informations détaillées
+            video_info = self.get_video_info(url)
+            if not video_info:
+                print(f"Impossible de récupérer les informations pour: {url}")
+                return False
+                
+            # Récupérer l'ID de la vidéo
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Mettre à jour les informations principales
+            cursor.execute('''
+            UPDATE videos 
+            SET upload_date = ?, description = ?, duration = ?, parsed = TRUE
+            WHERE url = ?
+            ''', (
+                video_info['upload_date'],
+                video_info['description'],
+                video_info['duration'],
+                url
+            ))
+            
+            # Récupérer l'ID de la vidéo pour les tags et chapitres
+            cursor.execute('SELECT id FROM videos WHERE url = ?', (url,))
+            result = cursor.fetchone()
+            if not result:
+                print(f"ID de vidéo introuvable pour: {url}")
+                conn.close()
+                return False
+                
+            video_id = result[0]
+                        
+            # Ajouter les tags
+            if 'tags' in video_info and video_info['tags']:
+                for tag in video_info['tags']:
+                    cursor.execute('''
+                    INSERT INTO tags (video_id, tag_name)
+                    VALUES (?, ?)
+                    ''', (video_id, tag))
+            
+            # Ajouter les chapitres
+            if 'chapters' in video_info and video_info['chapters']:
+                for timestamp, subtitle in video_info['chapters']:
+                    cursor.execute('''
+                    INSERT INTO video_chapters (video_id, timestamp, subtitle)
+                    VALUES (?, ?, ?)
+                    ''', (video_id, timestamp, subtitle))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"Add informations with success: {url}")
+            return True
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour de {url}: {str(e)}")
+            return False
 
 if __name__ == "__main__":
     db = YouTubeManager()
@@ -499,6 +570,8 @@ if __name__ == "__main__":
     # Pour ajouter une transcription à une vidéo existante
     # db.add_transcription("https://www.youtube.com/watch?v=gQYp_CYCGVM", "Ceci est une transcription de test ")
 
-    channel_url = "https://www.youtube.com/@master2sisedatascience/videos"
-    # ajouter le nom et le l'url des vidéos non scrapées à la base de données  
-    db.add_channel_videos(channel_url)
+    # channel_url = "https://www.youtube.com/@master2sisedatascience/videos"
+    # # ajouter le nom et le l'url des vidéos non scrapées à la base de données  
+    # db.add_channel_videos(channel_url)
+
+    db.add_video_details("https://www.youtube.com/watch?v=8wP2CoeJaqg")
