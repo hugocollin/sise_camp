@@ -7,6 +7,7 @@ import time
 from dotenv import find_dotenv, load_dotenv
 import streamlit as st
 
+from src.db.db_youtube import YouTubeManager
 from src.llm.llm import LLM
 from src.pipeline.pipeline import Pipeline
 
@@ -264,16 +265,31 @@ def show_add_video_dialog():
     """
     Fonction pour afficher la boîte de dialogue d'ajout de vidéo YouTube.
     """
-    # Lien de la vidéo YouTube
-    youtube_url = st.text_input("Lien de la vidéo YouTube")
+    # Récupération des vidéos non traitées
+    db_youtube = YouTubeManager()
+    videos = db_youtube.get_pending_videos()
+
+    if not videos:
+        st.info("Toutes les vidéos ont déjà été ajoutées", icon=":material/info:")
+        return
+
+    # Création d'un mapping title / url
+    video_dict = {title: url for title, url in videos}
+
+    # Choix de la vidéo à ajouter
+    selected_title = st.selectbox(
+        "Choisissez une vidéo à ajouter :",
+        options=list(video_dict.keys())
+    )
 
     # Récupération de la transcription
     if st.button(":material/add_circle: Ajouter la vidéo"):
         with st.status(
-            "**Traitement de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**",
+            "**Ajout de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**",
             expanded=True,
         ) as status:
             st.write("Initialisation...")
+            youtube_url = video_dict[selected_title]
             pipeline = Pipeline(youtube_url)
 
             st.write("Récupération de l'audio...")
@@ -295,11 +311,12 @@ def show_add_video_dialog():
             pipeline.update_video_info(transcription, summary)
 
             st.write("Finalisation...")
+            db_youtube.mark_video_as_processed(youtube_url)
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)
 
             status.update(
-                label="**La transcription de la vidéo a été récupérée avec succès ! Vous pouvez maintenant fermer la fenêtre.**",
+                label="**La vidéo a été ajoutée avec succès ! Vous pouvez maintenant fermer la fenêtre.**",
                 state="complete",
                 expanded=False,
             )
