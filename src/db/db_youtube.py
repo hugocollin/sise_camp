@@ -22,12 +22,12 @@ class YouTubeManager:
 
     def _setup_database(self):
         """
-        Configure la structure de la base de données.
+        Configure la structure de la base de données et ajoute la colonne `parsed` si elle n'existe pas.
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Create main videos table
+        # Création de la table `videos` si elle n'existe pas
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS videos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +41,14 @@ class YouTubeManager:
         )
         ''')
 
-        # Create tags table with direct video_id to tag_name relationship
+        # Vérifier si la colonne `parsed` existe, sinon l'ajouter
+        cursor.execute("PRAGMA table_info(videos)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if "parsed" not in columns:
+            cursor.execute("ALTER TABLE videos ADD COLUMN parsed BOOLEAN DEFAULT TRUE")
+            conn.commit()
+
+        # Création de la table `tags`
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS tags (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +58,7 @@ class YouTubeManager:
         )
         ''')
 
-        # Create table for video chapters (timestamps)
+        # Création de la table `video_chapters`
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS video_chapters (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,7 +150,7 @@ class YouTubeManager:
         except Exception as e:
             print(f" Error getting info for {url}: {str(e)}")
             return None
-    
+
     def url_exists(self, url):
         """
         Vérifie si une URL existe déjà dans la base de données.
@@ -167,12 +174,14 @@ class YouTubeManager:
         finally:
             conn.close()
     
-    def save_video(self, video_info):
+
+    def save_video(self, video_info, parsed):
         """
         Enregistre les informations d'une vidéo dans la base de données.
         
         Args:
             video_info (dict): Informations de la vidéo à enregistrer
+            parsed (bool): Indique si la vidéo a déjà été analysée ou non
         """
         if video_info is None:
             return
@@ -180,10 +189,10 @@ class YouTubeManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Insert video data
+        # Insérer ou mettre à jour la vidéo avec `parsed`
         cursor.execute('''
-        INSERT OR REPLACE INTO videos (url, title, upload_date, description, duration, transcription, resume)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO videos (url, title, upload_date, description, duration, transcription, resume, parsed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             video_info['url'],
             video_info['title'],
@@ -191,12 +200,13 @@ class YouTubeManager:
             video_info['description'],
             video_info['duration'], 
             video_info['transcription'], 
-            video_info['resume']
+            video_info['resume'],
+            parsed  # ✅ Ajouter la valeur `parsed`
         ))
 
         video_id = cursor.lastrowid 
 
-        # Insert tags
+        # Insérer les tags
         if 'tags' in video_info and video_info['tags']:
             for tag in video_info['tags']:
                 cursor.execute('''
@@ -204,7 +214,7 @@ class YouTubeManager:
                 VALUES (?, ?)
                 ''', (video_id, tag))
 
-        # Insert video chapters
+        # Insérer les chapitres
         if 'chapters' in video_info and video_info['chapters']:
             for timestamp, subtitle in video_info['chapters']:
                 cursor.execute('''
@@ -214,7 +224,7 @@ class YouTubeManager:
 
         conn.commit()
         conn.close()
-    
+
     def process_video(self, url):
         """
         Traite une vidéo YouTube : vérifie si elle existe déjà,
@@ -233,13 +243,13 @@ class YouTubeManager:
         try:
             video_info = self.get_video_info(url)
             if video_info:
-                self.save_video(video_info)
+                self.save_video(video_info, parsed=False)  # ✅ Ajouter les nouvelles vidéos avec `parsed=False`
                 return video_info
             return None
         except Exception as e:
             print(f" Error processing video {url}: {e}")
             return None
-    
+
     def add_transcription(self, url, transcription_text):
         """
         Ajoute une transcription fournie à une vidéo existante dans la base de données.
@@ -276,7 +286,7 @@ class YouTubeManager:
         except Exception as e:
             print(f"Error adding transcription for URL {url}: {str(e)}")
             return False
-        
+
     def add_resume(self, url, resume):
         """
         Ajoute une transcription fournie à une vidéo existante dans la base de données.
@@ -313,10 +323,10 @@ class YouTubeManager:
         except Exception as e:
             print(f"Error adding transcription for URL {url}: {str(e)}")
             return False
-    
+
     def process_videos_from_file(self, file_path):
         """
-        Traite les URLs de vidéos YouTube contenues dans un fichier. Pour monter la base de données avec les vidéos prédéfinies.
+        Traite les URLs de vidéos YouTube contenues dans un fichier pour les ajouter à la base de données.
         
         Args:
             file_path (str): Chemin vers le fichier contenant les URLs
@@ -326,6 +336,8 @@ class YouTubeManager:
             return
             
         processed = 0
+        errors = 0
+        skipped = 0
             
         with open(file_path, 'r', encoding='utf-8') as file:
             for line_num, line in enumerate(file, 1):
@@ -344,7 +356,6 @@ class YouTubeManager:
                     video_info = self.process_video(url)
                     if video_info:
                         processed += 1
-                        
                     else:
                         errors += 1
                     
@@ -353,7 +364,7 @@ class YouTubeManager:
                     print(f" Error processing URL {url}: {str(e)}")
                     errors += 1
         
-        print(f"\n {processed} processing file")
+        print(f"\n Processed: {processed}, Skipped: {skipped}, Errors: {errors}")
     
     def reset_database(self):
         """
@@ -369,7 +380,7 @@ class YouTubeManager:
         conn.commit()
         conn.close()
         print(" Database reset successfully")
-
+    
     def add_new_video(self, url):
         """
         Ajoute une URL YouTube à la base de données.
@@ -395,13 +406,89 @@ class YouTubeManager:
         except Exception as e:
             print(f"Error processing URL {url}: {str(e)}")
             return False
+  
+    def get_channel_videos(self, channel_url):
+        """
+        Récupère toutes les vidéos d'une chaîne YouTube.
+
+        Args:
+            channel_url (str): URL de la chaîne YouTube.
+
+        Returns:
+            list: Liste des URLs des vidéos.
+        """
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True,  # Ne pas télécharger, juste récupérer les URLs
+            'skip_download': True
+        }
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(channel_url, download=False)
+                videos = [entry['url'] for entry in info.get('entries', [])]
+                return videos
+        except Exception as e:
+            print(f"Erreur lors du scraping de la chaîne : {e}")
+            return []
+
+    def add_channel_videos(self, channel_url):
+        """
+        Ajoute toutes les vidéos d'une chaîne YouTube dans la base de données si elles ne sont pas déjà présentes.
+
+        Args:
+            channel_url (str): URL de la chaîne YouTube.
+        """
+        print(f"\nScraping videos from channel: {channel_url}")
+
+        video_urls = self.get_channel_videos(channel_url)
+        if not video_urls:
+            print("Aucune vidéo trouvée sur la chaîne.")
+            return
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Vérifier si la colonne 'parsed' existe dans la table videos
+        cursor.execute("PRAGMA table_info(videos)")
+        columns = [col[1] for col in cursor.fetchall()]
         
+        if "parsed" not in columns:
+            cursor.execute("ALTER TABLE videos ADD COLUMN parsed BOOLEAN DEFAULT TRUE")
+            conn.commit()
+
+        for url in video_urls:
+            if self.url_exists(url):
+                print(f"Vidéo déjà en base : {url}")
+                continue
+
+            # Récupérer le titre de la vidéo
+            try:
+                with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                    title = info.get('title', 'Unknown')
+            except Exception as e:
+                print(f"Erreur en récupérant le titre pour {url} : {e}")
+                title = "Unknown"
+
+            # Ajouter la vidéo avec parsed = FALSE
+            cursor.execute('''
+            INSERT INTO videos (url, title, parsed) 
+            VALUES (?, ?, ?)
+            ''', (url, title, False))
+
+            print(f"Ajouté à la base : {title}")
+
+        conn.commit()
+        conn.close()
+        print("\nBase de données mise à jour avec les nouvelles vidéos de la chaîne.")
+
 
 if __name__ == "__main__":
     db = YouTubeManager()
     
     # Pour initialiser la base de données avec les données dedans
-    db.process_videos_from_file("src/links.txt")
+    #db.process_videos_from_file("src/links.txt")
 
     # Pour insérer un résumé
     #db.add_resume("https://www.youtube.com/watch?v=gQYp_CYCGVM", "Ceci est un résumé tout à fait intéressant")
@@ -411,3 +498,7 @@ if __name__ == "__main__":
 
     # Pour ajouter une transcription à une vidéo existante
     # db.add_transcription("https://www.youtube.com/watch?v=gQYp_CYCGVM", "Ceci est une transcription de test ")
+
+    channel_url = "https://www.youtube.com/@master2sisedatascience/videos"
+    # ajouter le nom et le l'url des vidéos non scrapées à la base de données  
+    db.add_channel_videos(channel_url)
