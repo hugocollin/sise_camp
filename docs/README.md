@@ -151,11 +151,11 @@ Ouvrez votre navigateur et accédez à l'adresse suivante : [sise-camp.streamlit
 ## 🤝 Contributions
 Toutes les contributions sont les bienvenues ! Voici comment vous pouvez contribuer :
 
-Forkez le projet.
-Créez votre branche de fonctionnalité (git checkout -b feature/AmazingFeature).
-Commitez vos changements (git commit -m 'Add some AmazingFeature').
-Pushez sur la branche (git push origin feature/AmazingFeature).
-Ouvrez une Pull Request.
+1. Forkez le projet.
+2. Créez votre branche de fonctionnalité  (`git checkout -b feature/AmazingFeature`).
+3. Commitez vos changements (`git commit -m 'Add some AmazingFeature'`).
+4. Pushez sur la branche (`git push origin feature/AmazingFeature`).
+5. Ouvrez une Pull Request. 
 
 ## 👤 Auteurs
 
