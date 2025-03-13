@@ -7,6 +7,7 @@ import time
 from dotenv import find_dotenv, load_dotenv
 import streamlit as st
 import streamlit.components.v1 as components
+from litellm.exceptions import RateLimitError
 
 from src.db.db_youtube import YouTubeManager
 from src.llm.llm import LLM
@@ -36,18 +37,6 @@ def load_api_keys():
         st.session_state["found_api_keys"] = False
 
 
-def stream_text(text: str):
-    """
-    Fonction pour afficher le texte progressivement.
-
-    Args:
-        text (str): Texte à afficher progressivement.
-    """
-    for word in text.split(" "):
-        yield word + " "
-        time.sleep(0.03)
-
-
 def update_progress(progress_bar: st.progress, message_placeholder: st.empty, step: int, total_steps: int, message: str):
     """
     Met à jour le message et la barre de progression.
@@ -61,6 +50,56 @@ def update_progress(progress_bar: st.progress, message_placeholder: st.empty, st
     """
     message_placeholder.text(f"[{step}/{total_steps}] {message}")
     progress_bar.progress(int(step / total_steps * 100))
+
+
+def format_chapter(chapter: tuple) -> str:
+    """
+    Formate le chapitre en affichant le temps et le titre.
+
+    Args:
+        chapter (tuple): Un tuple contenant le temps et le titre,
+                         par exemple ('40:57', 'Plus loin avec le composant Python Script (Pipeline, code Python)')
+
+    Returns:
+        str: Le chapitre mis en forme au format "[temps] titre du chapitre".
+    """
+    time_indicator, title = chapter
+    return f"[{time_indicator}] {title}"
+
+
+def format_duration(duration_seconds: int) -> str:
+    """
+    Convertit une durée en secondes en format 'h min s' ou 'min s'.
+    
+    Args:
+        duration_seconds (int): Durée en secondes.
+    
+    Returns:
+        str: La durée formatée.
+    """
+    hours = duration_seconds // 3600
+    minutes = (duration_seconds % 3600) // 60
+    seconds = duration_seconds % 60
+    
+    if hours > 0:
+        return f"{hours}h {minutes}min {seconds}s"
+    else:
+        return f"{minutes}min {seconds}s"
+
+
+def format_upload_date(date_str: str) -> str:
+    """
+    Convertit une date au format 'YYYYMMDD' en 'DD/MM/YYYY'.
+    
+    Args:
+        date_str (str): Date au format 'YYYYMMDD'.
+    
+    Returns:
+        str: Date au format 'DD/MM/YYYY'. Si le format n'est pas celui attendu, renvoie la chaîne d'origine.
+    """
+    if len(date_str) == 8 and date_str.isdigit():
+        return f"{date_str[6:8]}/{date_str[4:6]}/{date_str[0:4]}"
+    return date_str
 
 
 def create_new_research(research: str):
@@ -110,35 +149,36 @@ def generate_research_name(research: str) -> str:
 
     # 5 tentatives pour générer un nom de conversation
     for _ in range(5):
-        # Génération du nom de la conversation
-        research_name = llm.call_model(
-            provider="mistral",
-            model="mistral-large-latest",
-            temperature=0.7,
-            prompt_dict=[
-                {
-                    "role": "user",
-                    "content": f"Tu es une intelligence artificielle spécialisée dans la création de nom de thématique en français. En te basant sur le texte suivant, qui est la recherche de l'utilisateur, propose une thématique d'au maximum de 30 caractères. Répond uniquement en donnant la thématique sans explication supplémentaire : {research}",
-                }
-            ],
-        )
+        try:
+            # Génération du nom de la conversation
+            research_name = llm.call_model(
+                provider="mistral",
+                model="mistral-large-latest",
+                temperature=0.7,
+                prompt_dict=[
+                    {
+                        "role": "user",
+                        "content": f"Tu es une intelligence artificielle spécialisée dans la création de nom de thématique en français. En te basant sur le texte suivant, qui est la recherche de l'utilisateur, propose une thématique d'au maximum de 30 caractères. Répond uniquement en donnant la thématique sans explication supplémentaire : {research}",
+                    }
+                ],
+            )
 
-        # Nettoyage du nom de la conversation
-        research_name = research_name.strip()
+            # Nettoyage du nom de la conversation
+            research_name = research_name.strip()
 
-        # Vérification de la conformité du nom de la conversation
-        if len(research_name) > 30:
-            time.sleep(2)
+            # Vérification de la conformité du nom de la conversation
+            if len(research_name) > 30 or research_name in st.session_state["researchs"]:
+                continue
+
+            # Changement du nom de la conversation
+            st.session_state["researchs"][research_name] = st.session_state["researchs"].pop(
+                st.session_state["selected_research"]
+            )
+            st.session_state["selected_research"] = research_name
+        
+        except RateLimitError:
+            time.sleep(5)
             continue
-        if research_name in st.session_state["researchs"]:
-            time.sleep(2)
-            continue
-
-        # Changement du nom de la conversation
-        st.session_state["researchs"][research_name] = st.session_state["researchs"].pop(
-            st.session_state["selected_research"]
-        )
-        st.session_state["selected_research"] = research_name
 
 
 @st.dialog("Renommer la recherche")
@@ -186,15 +226,48 @@ def show_research(current_research: str):
     research = st.session_state["researchs"][current_research]['input']
     search_engine = SearchEngine()
     results = search_engine.get_full_search_results(research)
+    st.session_state["researchs"][current_research]["output"] = results
+    db_youtube = YouTubeManager()
+    video_info = db_youtube.get_video_by_id(st.session_state["researchs"][current_research]["output"]["vid_id"], st.session_state["researchs"][current_research]["output"]["chapter_id"])
 
+    # Informations de la recherche
     for _ in range(4):
         st.write("")
-    st.write_stream(stream_text(f"**{current_research}**"))
+    st.header(f"**{current_research}**")
     st.warning(body=f"**{research}**", icon=":material/search:")
-    st.session_state["researchs"][current_research]["output"] = results
 
+    cols = st.columns([7, 3])
     # Affichage de la vidéo YouTube
-    components.iframe(st.session_state["researchs"][current_research]["output"]["video_url_with_timestamp"], width=560, height=315)
+    with cols[0]:
+        components.iframe(st.session_state["researchs"][current_research]["output"]["video_url_with_timestamp"], width=960, height=540)
+    # Informations sur la vidéo YouTube
+    with cols[1]:
+        with st.container(border=True):
+            st.subheader("**Informations sur la vidéo**")
+            st.write(f"**:material/play_circle: Titre :** {video_info["title"]}")
+            st.write(f"**:material/bookmark: Chapitre :** {format_chapter(video_info["chapter"])}")
+            st.write(f"**:material/hourglass: Durée :** {format_duration(video_info['duration'])}")
+            st.write(f"**:material/today: Date  :** {format_upload_date(video_info['upload_date'])}")
+            st.write(f"**:material/link: Lien :** {video_info["url"]}")
+            st.pills(
+                label="**:material/tag: Tags :**",
+                options=video_info["tags"],
+                selection_mode="multi",
+                default=video_info["tags"]
+            )
+
+    with st.container(border=True):
+        st.subheader("**:material/description: Description**")
+        st.write(video_info["description"])
+
+    with st.container(border=True):
+        st.subheader("**:material/summarize: Résumé**")
+        st.write(video_info["resume"])
+
+    with st.container(border=True, height=500):
+        st.subheader("**:material/audio_description: Transcription**")
+        st.write(video_info["transcription"])
+    
     st.write("*SISE Camp peut faire des erreurs. Envisagez de vérifier les informations importantes et n'envoyez pas d'informations confidentielles.*")
 
 
@@ -292,6 +365,14 @@ def show_sidebar() -> str:
                                 iter(st.session_state["researchs"]), None
                             )
                         st.rerun()
+                
+            # Information
+            if len(st.session_state["researchs"]) == 1:
+                st.warning(
+                    "Vous pouvez effectuer une nouvelle recherche en revenant à l'accueil (via le bouton :material/home:)",
+                    icon=":material/info:",
+                )
+
             return selected_research
         else:
             # Message d'information si aucune recherche n'a été créée

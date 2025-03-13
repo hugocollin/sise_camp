@@ -642,6 +642,45 @@ class YouTubeManager:
         conn.close()
         print("✅ Données insérées dans la table 'chunks'.")
 
+    def get_video_by_id(self, video_id, chapter_id):
+        """
+        Récupère toutes les informations d'une vidéo à partir de son ID, y compris ses tags.
+        
+        Args:
+            video_id (int): Identifiant de la vidéo dans la base de données.
+        
+        Returns:
+            dict or None: Dictionnaire contenant les informations de la vidéo et la liste des tags si trouvée, sinon None.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM videos WHERE id = ?", (video_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            video = {
+                "id": row[0],
+                "url": row[1],
+                "title": row[2],
+                "upload_date": row[3],
+                "description": row[4],
+                "duration": row[5],
+                "transcription": row[6],
+                "resume": row[7]
+            }
+            cursor.execute("SELECT timestamp, subtitle FROM video_chapters WHERE id = ?", (chapter_id,))
+            chapter = cursor.fetchone()
+            video["chapter"] = chapter
+            cursor.execute("SELECT tag_name FROM tags WHERE video_id = ?", (video_id,))
+            tags = [r[0] for r in cursor.fetchall()]
+            video["tags"] = tags
+            
+            conn.close()
+            return video
+        
+        conn.close()
+        return None
+
 
 if __name__ == "__main__":
     db = YouTubeManager()
