@@ -101,7 +101,7 @@ class Pipeline_Transcript_Faiss:
         print(f"Transcription récupérée pour la vidéo {id_video}.")
 
         # 2. Générer les chunks avec leurs IDs
-        chunk_list = self.generate_chunk_ids([(id_video, transcription)])
+        chunk_list = self.generate_chunk_ids(transcription)
         print(f"Chunks générés pour la vidéo {id_video}.")
 
         # 3. Ajouter les chunks à la base de données
