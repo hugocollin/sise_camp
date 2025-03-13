@@ -65,7 +65,7 @@ class SearchEngine:
 
         else :
             return {
-                "chaper_id" : None,
+                "chapter_id" : None,
                 "vid_id" : vid_id
             }
 
