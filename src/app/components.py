@@ -6,9 +6,11 @@ import os
 import time
 from dotenv import find_dotenv, load_dotenv
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.db.db_youtube import YouTubeManager
 from src.llm.llm import LLM
+from src.search_engine.search_engine import SearchEngine
 from src.pipeline.pipeline import Pipeline
 
 
@@ -72,7 +74,7 @@ def create_new_research(research: str):
     # Récupération des numéros de recherche existants
     existing_numbers = [
         int(name.split(" ")[1])
-        for name in st.session_state["research"].keys()
+        for name in st.session_state["researchs"].keys()
         if name.startswith("Recherche ") and name.split(" ")[1].isdigit()
     ]
 
@@ -83,7 +85,7 @@ def create_new_research(research: str):
 
     # Création de la nouvelle recherche
     new_research_name = f"Recherche {n}"
-    st.session_state["research"][new_research_name] = {"text": research}
+    st.session_state["researchs"][new_research_name] = {"input": research}
     st.session_state["selected_research"] = new_research_name
 
 
@@ -97,12 +99,12 @@ def select_research(research_name: str):
     st.session_state["selected_research"] = research_name
 
 
-def generate_research_name(research_name: str) -> str:
+def generate_research_name(research: str) -> str:
     """
     Fonction pour générer un nom de recherche.
 
     Args:
-        research_name (str): Recherche de l'utilisateur.
+        research (str): Recherche de l'utilisateur.
     """
     llm = LLM()
 
@@ -116,7 +118,7 @@ def generate_research_name(research_name: str) -> str:
             prompt_dict=[
                 {
                     "role": "user",
-                    "content": f"Tu es une intelligence artificielle spécialisée dans la création de nom de thématique en français. En te basant sur le texte suivant, qui est la recherche de l'utilisateur, propose une thématique d'au maximum de 30 caractères. Répond uniquement en donnant la thématique sans explication supplémentaire : {research_name}",
+                    "content": f"Tu es une intelligence artificielle spécialisée dans la création de nom de thématique en français. En te basant sur le texte suivant, qui est la recherche de l'utilisateur, propose une thématique d'au maximum de 30 caractères. Répond uniquement en donnant la thématique sans explication supplémentaire : {research}",
                 }
             ],
         )
@@ -126,13 +128,15 @@ def generate_research_name(research_name: str) -> str:
 
         # Vérification de la conformité du nom de la conversation
         if len(research_name) > 30:
+            time.sleep(2)
             continue
-        if research_name in st.session_state["research"]:
+        if research_name in st.session_state["researchs"]:
+            time.sleep(2)
             continue
 
         # Changement du nom de la conversation
-        st.session_state["research"][research_name] = st.session_state["research"].pop(
-            list(st.session_state["research"].keys())[0]
+        st.session_state["researchs"][research_name] = st.session_state["researchs"].pop(
+            st.session_state["selected_research"]
         )
         st.session_state["selected_research"] = research_name
 
@@ -155,20 +159,43 @@ def rename_research(current_name: str):
 
     if st.button("Enregistrer", icon=":material/save_as:", use_container_width=True):
         # Vérification de la conformité du nouveau nom
-        if new_name in st.session_state["research"] and new_name != current_name:
+        if new_name in st.session_state["researchs"] and new_name != current_name:
             st.error(
                 "Ce nom de recherche existe déjà, veuillez en choisir un autre.",
                 icon=":material/error:",
             )
         # Enregistrement du nouveau nom
         else:
-            st.session_state["research"][new_name] = st.session_state["research"].pop(
+            st.session_state["researchs"][new_name] = st.session_state["researchs"].pop(
                 current_name
             )
             st.session_state["selected_research"] = new_name
             if new_name != current_name:
                 st.session_state["research_renamed"] = True
             st.rerun()
+
+
+def show_research(current_research: str):
+    """
+    Fonction pour afficher la recherche sélectionnée.
+
+    Args:
+        current_research (str): Nom de la recherche sélectionnée.
+    """
+    # Récupération des informations de la recherche
+    research = st.session_state["researchs"][current_research]['input']
+    search_engine = SearchEngine()
+    results = search_engine.get_full_search_results(research)
+
+    for _ in range(4):
+        st.write("")
+    st.write_stream(stream_text(f"**{current_research}**"))
+    st.warning(body=f"**{research}**", icon=":material/search:")
+    st.session_state["researchs"][current_research]["output"] = results
+
+    # Affichage de la vidéo YouTube
+    components.iframe(st.session_state["researchs"][current_research]["output"]["video_url_with_timestamp"], width=560, height=315)
+    st.write("*SISE Camp peut faire des erreurs. Envisagez de vérifier les informations importantes et n'envoyez pas d'informations confidentielles.*")
 
 
 def show_sidebar() -> str:
@@ -180,8 +207,8 @@ def show_sidebar() -> str:
     """
 
     # Initialisation des recherches
-    if "research" not in st.session_state:
-        st.session_state["research"] = {}
+    if "researchs" not in st.session_state:
+        st.session_state["researchs"] = {}
 
     # Initialisation de la variable d'état de renommage de recherche
     if "research_renamed" not in st.session_state:
@@ -214,9 +241,9 @@ def show_sidebar() -> str:
         st.header("Recherches")
 
         # Sélecteur d'espaces de discussion
-        if st.session_state["research"]:
+        if st.session_state["researchs"]:
             selected_research = None
-            for research_name in list(st.session_state["research"].keys()):
+            for research_name in list(st.session_state["researchs"].keys()):
                 btn_cols = st.columns([3, 1, 1])
 
                 # Bouton pour sélectionner la recherche
@@ -258,11 +285,11 @@ def show_sidebar() -> str:
                         key=f"delete_'{research_name}'_button",
                         use_container_width=True,
                     ):
-                        del st.session_state["research"][research_name]
+                        del st.session_state["researchs"][research_name]
                         del st.session_state[f"delete_'{research_name}'_button"]
                         if st.session_state.get("selected_research") == research_name:
                             st.session_state["selected_research"] = next(
-                                iter(st.session_state["research"]), None
+                                iter(st.session_state["researchs"]), None
                             )
                         st.rerun()
             return selected_research

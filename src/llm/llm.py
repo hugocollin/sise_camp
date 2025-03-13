@@ -34,6 +34,7 @@ class LLM:
 
         return response_text
 
+
     def _generate(
         self,
         provider : str,
@@ -59,3 +60,12 @@ class LLM:
             temperature=temperature
         )
         return response
+
+
+    def generate_prompt_embedding(self, prompt: str) -> list[float]:
+        """
+        Génère un embedding pour le prompt en utilisant le modèle 'mistral-embed'.
+        """
+        model = "mistral/mistral-embed"
+        response = litellm.embedding(model=model, input=[prompt])
+        return response["data"][0]["embedding"]

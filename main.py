@@ -6,7 +6,7 @@ import streamlit as st
 
 from src.app.components import (
     load_api_keys,
-    stream_text,
+    show_research,
     show_sidebar,
     create_new_research,
     generate_research_name,
@@ -56,6 +56,10 @@ st.html(
 # Chargement des clés API
 load_api_keys()
 
+# Initialiser l'état de recherche en cours si nécessaire
+if "research_in_progress" not in st.session_state:
+    st.session_state["research_in_progress"] = False
+
 # Affichage de la barre latérale
 SELECTED_RESEARCH = show_sidebar()
 
@@ -65,24 +69,14 @@ if SELECTED_RESEARCH:
 elif "selected_research" not in st.session_state and SELECTED_RESEARCH:
     st.session_state["selected_research"] = SELECTED_RESEARCH
 
-# video_id = "D__sO3x0FzQ"
-# start_time = 500  # en secondes
-# embed_url = f"https://www.youtube.com/embed/{video_id}?start={start_time}"
-# st.components.v1.iframe(embed_url, height=315, width=560)
-
 # Affichage de la recherche sélectionnée
 if (
     "selected_research" in st.session_state
     and st.session_state["selected_research"] is not None
 ):
-    # Informations sur la recherche
+    # Résultats de la recherche
     current_research = st.session_state["selected_research"]
-    st.write_stream(stream_text(f"**{current_research}**"))
-    st.warning(body=f"**{st.session_state['research'][current_research]['text']}**", icon=":material/search:")
-    st.warning(
-        "*Résultats de la recherche disponibles ultérieurement*", icon=":material/info:"
-    )
-    st.write("*SISE Camp peut faire des erreurs. Envisagez de vérifier les informations importantes et n'envoyez pas d'informations confidentielles.*")
+    show_research(current_research)
 else:
     st.container(height=200, border=False)
     with st.container():
@@ -102,14 +96,31 @@ else:
 
             cols = st.columns([1, 5, 1])
             with cols[1]:
-                if len(st.session_state["research"]) < 5:
-                    # Barre de saisie de question
-                    research = st.chat_input("🔍", key="new_research")
+                if len(st.session_state["researchs"]) < 5:
+                    if st.session_state["research_in_progress"]:
+                        # Animation de recherche
+                        cols = st.columns([1, 1, 1])
+                        with cols[1]:
+                            st.image("ressources/research.gif", use_container_width=True)
+                    else:
+                        # Barre de saisie de question
+                        research = st.chat_input("🔍", key="new_research")
 
-                    if research:
-                        st.session_state["initial_research"] = research
+                        if research:
+                            # Activer l'état de recherche en cours
+                            st.session_state["research_in_progress"] = True
+                            st.session_state["initial_research"] = research
+                            st.rerun()
+                
+                    # Traitement de la recherche si elle existe et qu'elle est en cours
+                    if st.session_state["research_in_progress"] and "initial_research" in st.session_state:
+                        research = st.session_state["initial_research"]
                         create_new_research(research)
                         generate_research_name(research)
+
+                        # Réinitialisation de l'état de recherche
+                        st.session_state["research_in_progress"] = False
+                        del st.session_state["initial_research"]
                         st.rerun()
                 else:
                     # Message d'information

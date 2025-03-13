@@ -1,25 +1,18 @@
 import numpy as np
 import faiss
 import sqlite3
-from mistralai import Mistral
 import re
 
+from src.llm.llm import LLM
+
+
 class SearchEngine:
-    def __init__(self, mistral_api_key: str):
-        """Initialise le pipeline avec l'API Mistral"""
-        self.client = Mistral(api_key=mistral_api_key)
-        self.index_transcriptions = faiss.read_index("../../indexs/faiss_index_transcripts.bin")
-        self.index_chapters = faiss.read_index("../../indexs/faiss_index_chapters.bin")
-        self.db_path = '../videos_youtube.db'
-
-    def generate_prompt_embedding(self, prompt: str):
-        """Génère un embedding pour le prompt"""
-        #Sélection du modèle
-        model = "mistral-embed"
-        #Création de l'embedding
-        response = self.client.embeddings.create(model=model, inputs=[prompt])
-
-        return response.data[0].embedding
+    def __init__(self):
+        """Initialise le pipeline"""
+        self.llm = LLM()
+        self.index_transcriptions = faiss.read_index("indexs/faiss_index_transcripts.bin")
+        self.index_chapters = faiss.read_index("indexs/faiss_index_chapters.bin")
+        self.db_path = 'src/videos_youtube.db'
 
     def search_similarity(self, prompt_embedding: list[float]):
         """Recherche l'embedding le plus proche du prompt"""
@@ -106,7 +99,7 @@ class SearchEngine:
     def get_full_search_results(self, prompt: str):
         """Centralise et retourne tous les résultats sous forme de dictionnaire"""
         # Étape 1: Générer l'embedding du prompt
-        prompt_embedding = self.generate_prompt_embedding(prompt)
+        prompt_embedding = self.llm.generate_prompt_embedding(prompt)
 
         # Étape 2: Recherche du chunk le plus similaire
         similarity_results = self.search_similarity(prompt_embedding)
