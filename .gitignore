@@ -8,3 +8,6 @@ __pycache__/
 
 # Ignorer le fichier d'environnement
 .env
+/venv_sisecamp
+
+.DS_Store
