@@ -48,6 +48,7 @@ Ce projet permet aux utilisateurs de :
 ├── .streamlit/
 │   └── config.toml
 ├── docs/
+│   ├── presentation.pdf
 │   └── README.md
 ├── indexs/
 │   ├── faiss_index_chapters.bin
@@ -82,6 +83,7 @@ Ce projet permet aux utilisateurs de :
 ├── packages.txt
 └── requirements.txt
 ```
+
 ## 🚀 Installation
 
 Pour installer ce projet, clonez le dépôt sur votre machine locale, en utilisant la commande suivante :
