@@ -54,6 +54,9 @@ class Pipeline_Chapters_Faiss:
         # Ajouter les embeddings à l'index Faiss avec les IDs
         self.index.add_with_ids(embeddings, ids)
 
+        # Sauvegarde des modifications
+        faiss.write_index(self.index, "indexs/faiss_index_chapters.bin")
+
         print(f"Ajouté {len(embd_ids_list)} embeddings à l'index Faiss.")
 
     def run_pipeline(self, id_video: int):
