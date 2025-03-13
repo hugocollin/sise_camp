@@ -249,6 +249,25 @@ class YouTubeManager:
         except Exception as e:
             print(f" Error processing video {url}: {e}")
             return None
+    
+    def get_id(self, url: str) -> int:
+        """
+        Récupère l'identifiant de la vidéo dans la base de données en fonction de son URL.
+        
+        Args:
+            url (str): URL de la vidéo YouTube.
+        
+        Returns:
+            int: Identifiant de la vidéo si trouvé, sinon None.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM videos WHERE url = ?", (url,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            return result[0]
+        return None
         
     def get_pending_videos(self):
         """

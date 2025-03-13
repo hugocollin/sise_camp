@@ -9,8 +9,8 @@ processor = TextProcessor()
 class Pipeline_Transcript_Faiss:
     def __init__(self):
         """Initialise la pipeline avec la base de données, l'index Faiss et le modèle LLM."""
-        self.db_path = "../videos_youtube.db"
-        self.index = faiss.read_index("../../indexs/faiss_index_transcripts.bin")
+        self.db_path = "src/videos_youtube.db"
+        self.index = faiss.read_index("indexs/faiss_index_transcripts.bin")
         self.llm = LLM()
         self.processor = processor
 
@@ -18,12 +18,12 @@ class Pipeline_Transcript_Faiss:
         """Récupère la transcription d'une vidéo depuis la base de données."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute(f"SELECT transcription FROM videos WHERE id={id_video}")
+        cursor.execute(f"SELECT id, transcription FROM videos WHERE id={id_video}")
         result = cursor.fetchone()
         conn.close()
 
         if result:
-            return result[0]  # Retourne la transcription
+            return result  # Retourne la transcription
         else:
             raise ValueError(f"No transcription found for video id {id_video}")
 
@@ -101,7 +101,7 @@ class Pipeline_Transcript_Faiss:
         print(f"Transcription récupérée pour la vidéo {id_video}.")
 
         # 2. Générer les chunks avec leurs IDs
-        chunk_list = self.generate_chunk_ids(transcription)
+        chunk_list = self.generate_chunk_ids([transcription])
         print(f"Chunks générés pour la vidéo {id_video}.")
 
         # 3. Ajouter les chunks à la base de données

@@ -34,13 +34,13 @@ class Pipeline_Chapters_Faiss:
 
         #Génère les embeddings
         for chap in chapters:
-            chap_embed.append(self.llm.generate_prompt_embedding(chap))
+            list_embd.append(self.llm.generate_prompt_embedding(chap))
             time.sleep(2)
 
         #Générer la liste des nouveaux IDs
         new_ids = [f"{grp:02}{id_:03}" for id_, grp, _ in results]
 
-        return [list_embed, news_ids]
+        return [list_embd, new_ids]
 
 
     def add_embed_to_index(self, embd_ids_list: list[list[str], list[float]]):
@@ -54,7 +54,7 @@ class Pipeline_Chapters_Faiss:
         # Ajouter les embeddings à l'index Faiss avec les IDs
         self.index.add_with_ids(embeddings, ids)
 
-        print(f"Ajouté {len(embeddings_with_ids)} embeddings à l'index Faiss.")
+        print(f"Ajouté {len(embd_ids_list)} embeddings à l'index Faiss.")
 
     def run_pipeline(self, id_video: int):
         """Exécute tout le pipeline pour un id_video donné."""

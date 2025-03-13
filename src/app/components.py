@@ -13,6 +13,8 @@ from src.db.db_youtube import YouTubeManager
 from src.llm.llm import LLM
 from src.search_engine.search_engine import SearchEngine
 from src.pipeline.pipeline import Pipeline
+from src.pipeline.pipeline_transcript import Pipeline_Transcript_Faiss
+from src.pipeline.pipeline_chapitres import Pipeline_Chapters_Faiss
 
 
 def load_api_keys():
@@ -393,6 +395,10 @@ def show_add_video_dialog():
     db_youtube = YouTubeManager()
     videos = db_youtube.get_pending_videos()
 
+    # Initialisation des pipelines du moteur de recherche
+    pipeline_transcript = Pipeline_Transcript_Faiss()
+    pipeline_chapters = Pipeline_Chapters_Faiss()
+
     if not videos:
         st.info("Toutes les vidéos ont déjà été ajoutées", icon=":material/info:")
         return
@@ -419,11 +425,12 @@ def show_add_video_dialog():
             # Initialisation de la barre de progression
             progress_bar = st.progress(0)
             message_placeholder = st.empty()
-            total_steps = 9
+            total_steps = 10
 
             update_progress(progress_bar, message_placeholder, 1, total_steps, "Initialisation...")
             youtube_url = video_dict[selected_title]
             pipeline = Pipeline(youtube_url)
+            video_id = db_youtube.get_id(youtube_url)
 
             update_progress(progress_bar, message_placeholder, 2, total_steps, "Récupération des informations...")
             db_youtube.add_video_details(youtube_url)
@@ -446,7 +453,11 @@ def show_add_video_dialog():
             update_progress(progress_bar, message_placeholder, 8, total_steps, "Enregistrement des informations...")
             pipeline.update_video_info(transcription, summary)
 
-            update_progress(progress_bar, message_placeholder, 9, total_steps, "Finalisation...")
+            update_progress(progress_bar, message_placeholder, 9, total_steps, "Indexation dans le moteur de recherche...")
+            pipeline_transcript.run_pipeline(video_id)
+            pipeline_chapters.run_pipeline(video_id)
+
+            update_progress(progress_bar, message_placeholder, 10, total_steps, "Finalisation...")
             db_youtube.mark_video_as_processed(youtube_url)
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)
