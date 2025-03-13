@@ -80,20 +80,23 @@ if (
 else:
     st.container(height=200, border=False)
     with st.container():
+        # Logo de l'application
+        cols = st.columns([1, 2.5, 1])
+        with cols[1]:
+            st.image("ressources/logo.png", use_container_width=True)
+
         # Affichage si une ou plusieurs clés d'API sont introuvables
         if st.session_state["found_api_keys"] is False:
-            # Message d'erreur
-            st.error(
-                "**Application indisponible :** "
-                "Une ou plusieurs clés d'API sont introuvables.",
-                icon=":material/error:",
-            )
-        else:
-            # Logo de l'application
-            cols = st.columns([1, 2.5, 1])
+            cols = st.columns([1, 5, 1])
             with cols[1]:
-                st.image("ressources/logo.png", use_container_width=True)
-
+                # Message d'erreur
+                st.error(
+                    "**Application indisponible :** "
+                    "Une ou plusieurs clés d'API sont introuvables.",
+                    icon=":material/error:",
+                )
+        else:
+            # Affichage de la barre de recherche
             cols = st.columns([1, 5, 1])
             with cols[1]:
                 if len(st.session_state["researchs"]) < 5:

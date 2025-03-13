@@ -565,82 +565,91 @@ def show_add_video_dialog():
     """
     Fonction pour afficher la boîte de dialogue d'ajout de vidéo YouTube.
     """
-    # Récupération des vidéos non traitées
-    db_youtube = YouTubeManager()
-    videos = db_youtube.get_pending_videos()
+    # Affichage si une ou plusieurs clés d'API sont introuvables
+    if st.session_state["found_api_keys"] is False:
+        # Message d'erreur
+        st.error(
+            "**Fonctionnalitée indisponible :** "
+            "Une ou plusieurs clés d'API sont introuvables.",
+            icon=":material/error:",
+        )
+    else:
+        # Récupération des vidéos non traitées
+        db_youtube = YouTubeManager()
+        videos = db_youtube.get_pending_videos()
 
-    # Initialisation des pipelines du moteur de recherche
-    pipeline_transcript = Pipeline_Transcript_Faiss()
-    pipeline_chapters = Pipeline_Chapters_Faiss()
+        # Initialisation des pipelines du moteur de recherche
+        pipeline_transcript = Pipeline_Transcript_Faiss()
+        pipeline_chapters = Pipeline_Chapters_Faiss()
 
-    if not videos:
-        st.info("Toutes les vidéos ont déjà été ajoutées", icon=":material/info:")
-        return
+        if not videos:
+            st.info("Toutes les vidéos ont déjà été ajoutées", icon=":material/info:")
+            return
 
-    # Création d'un mapping title / url
-    video_dict = {title: url for title, url in videos}
+        # Création d'un mapping title / url
+        video_dict = {title: url for title, url in videos}
 
-    # Choix de la vidéo à ajouter
-    selected_title = st.selectbox(
-        "Choisissez une vidéo à ajouter :",
-        options=list(video_dict.keys())
-    )
+        # Choix de la vidéo à ajouter
+        selected_title = st.selectbox(
+            "Choisissez une vidéo à ajouter :",
+            options=list(video_dict.keys())
+        )
 
-    # Prévisualisation de la vidéo à ajouter
-    youtube_url = video_dict[selected_title]
-    st.video(youtube_url)
+        # Prévisualisation de la vidéo à ajouter
+        youtube_url = video_dict[selected_title]
+        st.video(youtube_url)
 
-    # Récupération de la transcription
-    if st.button(":material/add_circle: Ajouter la vidéo"):
-        with st.status(
-            "**Ajout de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**",
-            expanded=True,
-        ) as status:
-            # Initialisation de la barre de progression
-            progress_bar = st.progress(0)
-            message_placeholder = st.empty()
-            total_steps = 10
+        # Récupération de la transcription
+        if st.button(":material/add_circle: Ajouter la vidéo"):
+            with st.status(
+                "**Ajout de la vidéo en cours... Ne fermez pas la fenêtre, cela peut prendre quelques minutes !**",
+                expanded=True,
+            ) as status:
+                # Initialisation de la barre de progression
+                progress_bar = st.progress(0)
+                message_placeholder = st.empty()
+                total_steps = 10
 
-            update_progress(progress_bar, message_placeholder, 1, total_steps, "Initialisation...")
-            youtube_url = video_dict[selected_title]
-            pipeline = Pipeline(youtube_url)
-            video_id = db_youtube.get_id(youtube_url)
+                update_progress(progress_bar, message_placeholder, 1, total_steps, "Initialisation...")
+                youtube_url = video_dict[selected_title]
+                pipeline = Pipeline(youtube_url)
+                video_id = db_youtube.get_id(youtube_url)
 
-            update_progress(progress_bar, message_placeholder, 2, total_steps, "Récupération des informations...")
-            db_youtube.add_video_details(youtube_url)
+                update_progress(progress_bar, message_placeholder, 2, total_steps, "Récupération des informations...")
+                db_youtube.add_video_details(youtube_url)
 
-            update_progress(progress_bar, message_placeholder, 3, total_steps, "Récupération de l'audio...")
-            mp3_file = pipeline.get_mp3()
+                update_progress(progress_bar, message_placeholder, 3, total_steps, "Récupération de l'audio...")
+                mp3_file = pipeline.get_mp3()
 
-            update_progress(progress_bar, message_placeholder, 4, total_steps, "Préparation de l'audio pour la transcription...")
-            chunks = pipeline.audio_chunks(mp3_file)
+                update_progress(progress_bar, message_placeholder, 4, total_steps, "Préparation de l'audio pour la transcription...")
+                chunks = pipeline.audio_chunks(mp3_file)
 
-            update_progress(progress_bar, message_placeholder, 5, total_steps, "Transcription de l'audio...")
-            transcription = pipeline.transcribe_audio(chunks)
+                update_progress(progress_bar, message_placeholder, 5, total_steps, "Transcription de l'audio...")
+                transcription = pipeline.transcribe_audio(chunks)
 
-            update_progress(progress_bar, message_placeholder, 6, total_steps, "Amélioration de la transcription...")
-            transcription = pipeline.transcription_enhancement(transcription)
+                update_progress(progress_bar, message_placeholder, 6, total_steps, "Amélioration de la transcription...")
+                transcription = pipeline.transcription_enhancement(transcription)
 
-            update_progress(progress_bar, message_placeholder, 7, total_steps, "Création du résumé...")
-            summary = pipeline.create_summary(transcription)
+                update_progress(progress_bar, message_placeholder, 7, total_steps, "Création du résumé...")
+                summary = pipeline.create_summary(transcription)
 
-            update_progress(progress_bar, message_placeholder, 8, total_steps, "Enregistrement des informations...")
-            pipeline.update_video_info(transcription, summary)
+                update_progress(progress_bar, message_placeholder, 8, total_steps, "Enregistrement des informations...")
+                pipeline.update_video_info(transcription, summary)
 
-            update_progress(progress_bar, message_placeholder, 9, total_steps, "Indexation dans le moteur de recherche...")
-            pipeline_transcript.run_pipeline(video_id)
-            pipeline_chapters.run_pipeline(video_id)
+                update_progress(progress_bar, message_placeholder, 9, total_steps, "Indexation dans le moteur de recherche...")
+                pipeline_transcript.run_pipeline(video_id)
+                pipeline_chapters.run_pipeline(video_id)
 
-            update_progress(progress_bar, message_placeholder, 10, total_steps, "Finalisation...")
-            db_youtube.mark_video_as_processed(youtube_url)
-            if os.path.exists(mp3_file):
-                os.remove(mp3_file)
+                update_progress(progress_bar, message_placeholder, 10, total_steps, "Finalisation...")
+                db_youtube.mark_video_as_processed(youtube_url)
+                if os.path.exists(mp3_file):
+                    os.remove(mp3_file)
 
-            status.update(
-                label="**La vidéo a été ajoutée avec succès ! Vous pouvez maintenant fermer la fenêtre.**",
-                state="complete",
-                expanded=False,
-            )
+                status.update(
+                    label="**La vidéo a été ajoutée avec succès ! Vous pouvez maintenant fermer la fenêtre.**",
+                    state="complete",
+                    expanded=False,
+                )
 
 
 @st.dialog("Informations sur l'application", width="large")
