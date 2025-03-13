@@ -18,6 +18,41 @@ st.set_page_config(
     page_title="SISE Camp", page_icon="ressources/favicon.png", layout="wide"
 )
 
+st.markdown(
+    """
+    <style>
+        .block-container {
+            padding-top: 50px;
+            padding-bottom: 0px;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .stButton button {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stButton button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .stImage img {
+            transition: transform 0.5s;
+        }
+        
+        .stImage img:hover {
+            transform: scale(1.05);
+        }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
 # Chargement des clés API
 load_api_keys()
 
@@ -51,9 +86,8 @@ if (
     # Informations sur la recherche
     current_research = st.session_state["selected_research"]
     st.write_stream(stream_text(f"**{current_research}**"))
-    st.header(st.session_state["research"][current_research]["text"])
-
-    st.info(
+    st.info(body=f"**{st.session_state["research"][current_research]["text"]}**", icon=":material/search:")
+    st.warning(
         "*Résultats de la recherche disponibles ultérieurement*", icon=":material/info:"
     )
     st.write("*SISE Camp peut faire des erreurs. Envisagez de vérifier les informations importantes et n'envoyez pas d'informations confidentielles.*")
