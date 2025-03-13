@@ -252,7 +252,7 @@ def show_sidebar() -> str:
             return selected_research
         else:
             # Message d'information si aucune recherche n'a été créée
-            st.info(
+            st.warning(
                 "Effectuez votre première recherche via la barre de recherche",
                 icon=":material/info:",
             )
