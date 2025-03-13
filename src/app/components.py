@@ -80,7 +80,7 @@ def format_duration(duration_seconds: int) -> str:
     hours = duration_seconds // 3600
     minutes = (duration_seconds % 3600) // 60
     seconds = duration_seconds % 60
-    
+
     if hours > 0:
         return f"{hours}h {minutes}min {seconds}s"
     else:
@@ -175,7 +175,7 @@ def generate_research_name(research: str) -> str:
                 st.session_state["selected_research"]
             )
             st.session_state["selected_research"] = research_name
-        
+
         except RateLimitError:
             time.sleep(5)
             continue
@@ -245,7 +245,8 @@ def show_research(current_research: str):
         with st.container(border=True):
             st.subheader("**Informations sur la vidéo**")
             st.write(f"**:material/play_circle: Titre :** {video_info["title"]}")
-            st.write(f"**:material/bookmark: Chapitre :** {format_chapter(video_info["chapter"])}")
+            if video_info["chapter"] is not None:
+                st.write(f"**:material/bookmark: Chapitre :** {format_chapter(video_info["chapter"])}")
             st.write(f"**:material/hourglass: Durée :** {format_duration(video_info['duration'])}")
             st.write(f"**:material/today: Date  :** {format_upload_date(video_info['upload_date'])}")
             st.write(f"**:material/link: Lien :** {video_info["url"]}")
@@ -267,7 +268,7 @@ def show_research(current_research: str):
     with st.container(border=True, height=500):
         st.subheader("**:material/audio_description: Transcription**")
         st.write(video_info["transcription"])
-    
+
     st.write("*SISE Camp peut faire des erreurs. Envisagez de vérifier les informations importantes et n'envoyez pas d'informations confidentielles.*")
 
 
@@ -365,7 +366,7 @@ def show_sidebar() -> str:
                                 iter(st.session_state["researchs"]), None
                             )
                         st.rerun()
-                
+
             # Information
             if len(st.session_state["researchs"]) == 1:
                 st.warning(
