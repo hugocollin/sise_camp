@@ -60,6 +60,15 @@ class SearchEngine:
             chapter_id = str(results[0][0])[-3:]
             vid_id = str(results[0][0])[:2]
 
+        if results_similarity["vid_id"] == vid_id : 
+            continue
+
+        else :
+            return {
+                "chaper_id" : None,
+                "vid_id" : vid_id
+            }
+
         return {
             "chapter_id" : chapter_id,
             "vid_id" : vid_id
@@ -76,25 +85,31 @@ class SearchEngine:
 
         video_url = result[0]
 
-        #Récupère le timestamp du chapitre
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT timestamp FROM video_chapters WHERE id = ?", (chapter_id,))
-        result = cursor.fetchone()
-        conn.close()
-
-        chapter_timestamp = result[0]
-
-        #Converti le timestamp MM:SS en secondes
-        minutes, seconds = map(int, chapter_timestamp.split(':'))
-        total_seconds = minutes * 60 + seconds
-
-        #Construction de l'URL avec le timestamp
+        #Récupère l'ID Youtube de la vidéo 
         match = re.search(r"(?<=v=)[\w-]+", video_url)
         id_yt_vid = match.group(0)
-        video_url_with_timestamp = f"https://www.youtube.com/embed/{id_yt_vid}?start={total_seconds}"
 
-        return video_url_with_timestamp
+        if chapter_id is not None :
+            #Récupère le timestamp du chapitre
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT timestamp FROM video_chapters WHERE id = ?", (chapter_id,))
+            result = cursor.fetchone()
+            conn.close()
+
+            chapter_timestamp = result[0]
+
+            #Converti le timestamp MM:SS en secondes
+            minutes, seconds = map(int, chapter_timestamp.split(':'))
+            total_seconds = minutes * 60 + seconds
+
+            #Construction de l'URL avec le timestamp
+            video_url_with_timestamp = f"https://www.youtube.com/embed/{id_yt_vid}?start={total_seconds}"
+
+            return video_url_with_timestamp
+
+        else : 
+            return f"https://www.youtube.com/embed/{id_yt_vid}?start=0"
 
     def get_full_search_results(self, prompt: str):
         """Centralise et retourne tous les résultats sous forme de dictionnaire"""
@@ -111,7 +126,7 @@ class SearchEngine:
         chapter_results = self.search_similar_chapter(similarity_results)
 
         # Étape 5: Récupérer l'URL de la vidéo avec le timestamp du chapitre
-        video_url = self.search_vid_url(chapter_results["vid_id"], chapter_results["chapter_id"])
+        video_url = self.search_vid_url(similarity_results["vid_id"], chapter_results["chapter_id"])
 
         # Retourner tous les résultats dans un seul dictionnaire
         full_results = {
