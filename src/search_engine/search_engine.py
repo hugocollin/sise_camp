@@ -61,18 +61,16 @@ class SearchEngine:
             vid_id = str(results[0][0])[:2]
 
         if results_similarity["vid_id"] == vid_id : 
-            continue
+            return {
+                "chapter_id" : chapter_id,
+                "vid_id" : vid_id
+            }
 
         else :
             return {
                 "chapter_id" : None,
                 "vid_id" : vid_id
             }
-
-        return {
-            "chapter_id" : chapter_id,
-            "vid_id" : vid_id
-        }
 
     def search_vid_url(self, id_vid, chapter_id):
         """Retourne l'URL de la vidéo associée à un ID donné"""
