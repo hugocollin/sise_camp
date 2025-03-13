@@ -101,18 +101,20 @@ class SearchEngine:
             result = cursor.fetchone()
             conn.close()
 
-            chapter_timestamp = result[0]
+            if result is None:
+                total_seconds = 0
+            else:
+                chapter_timestamp = result[0]
+                # Convertit le timestamp MM:SS en secondes
+                minutes, seconds = map(int, chapter_timestamp.split(':'))
+                total_seconds = minutes * 60 + seconds
 
-            #Converti le timestamp MM:SS en secondes
-            minutes, seconds = map(int, chapter_timestamp.split(':'))
-            total_seconds = minutes * 60 + seconds
-
-            #Construction de l'URL avec le timestamp
+            # Construction de l'URL avec le timestamp
             video_url_with_timestamp = f"https://www.youtube.com/embed/{id_yt_vid}?start={total_seconds}"
 
             return video_url_with_timestamp
 
-        else : 
+        else:
             return f"https://www.youtube.com/embed/{id_yt_vid}?start=0"
 
     def get_full_search_results(self, prompt: str):
