@@ -137,7 +137,7 @@ class Pipeline:
             prompt_dict=[
                 {
                     "role": "user",
-                    "content": f"À partir de la transcription de l'audio d'une vidéo YouTube, corrige et améliore ce texte pour obtenir un français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général de la vidéo : {transcription}",
+                    "content": f"Tu es une intelligence artificielle spécialisée dans la transcription de l'audio des vidéos des enseignements de Monsieur Ricco Rakotomalala. À partir de la transcription qui est fournie, corrige et améliore ce texte pour obtenir un Français clair, fluide et sans fautes. Assure-toi d’éliminer les répétitions ou erreurs éventuelles, et préserve le sens général de la vidéo sans changer ni supprimer d'informations : {transcription}",
                 }
             ],
         )
@@ -160,7 +160,7 @@ class Pipeline:
             prompt_dict=[
                 {
                     "role": "user",
-                    "content": f"Crée un résumé de la transcription de l'audio d'une vidéo YouTube. Le résumé doit être concis et refléter les idées principales de la vidéo : {transcription}",
+                    "content": f"Tu es une intelligence artificielle spécialisée dans la création de résumé de transcription audio des vidéos des enseignements de Monsieur Ricco Rakotomalala. À partir de la transcription qui est fournie, créé un résumé concis et qui reflète les idées principales de la vidéo : {transcription}",
                 }
             ],
         )

@@ -4,6 +4,7 @@ Ce fichier contient les fonctions nécessaires pour l'affichage de l'interface d
 
 import os
 import time
+import json
 from dotenv import find_dotenv, load_dotenv
 import streamlit as st
 import streamlit.components.v1 as components
@@ -37,6 +38,20 @@ def load_api_keys():
         st.session_state["huggingface_api_key"] = huggingface_api_key
     else:
         st.session_state["found_api_keys"] = False
+
+
+def convert_to_json(response : str) -> dict:
+    """
+    Fonction pour convertir une réponse en JSON.
+
+    Args:
+        response (str): Réponse à convertir en JSON.
+
+    Returns:
+        dict: Réponse convertie en JSON.
+    """
+    res = response.strip("```json\n").strip("\n```")
+    return json.loads(res)
 
 
 def update_progress(progress_bar: st.progress, message_placeholder: st.empty, step: int, total_steps: int, message: str):
@@ -259,6 +274,9 @@ def show_research(current_research: str):
                 default=video_info["tags"]
             )
 
+        if st.button("✨ Générer un quiz", key="generate_quiz_button", use_container_width=True):
+            generate_quiz(st.session_state["researchs"][current_research]["output"]["chunk_text"])
+
     with st.container(border=True):
         st.subheader("**:material/description: Description**")
         st.write(video_info["description"])
@@ -384,6 +402,162 @@ def show_sidebar() -> str:
                 icon=":material/info:",
             )
             return None
+
+
+@st.dialog("Quiz", width="large")
+def generate_quiz(chunk: str):
+    """
+    Génère un quiz avec des questions sur le sujet donné.
+    """
+
+    # Paramétrage du quiz
+    with st.container(border=True):
+        nb_questions = st.slider(
+            "Nombre de questions", min_value=1, max_value=10, value=5, step=1
+        )
+        if st.button("Créer un quiz", use_container_width=True):
+            # Réinitialisation des données du quiz
+            st.session_state["quiz_data"] = None
+            st.session_state["quiz_answers"] = {}
+            st.session_state["quiz_submitted"] = False
+            st.session_state["quiz_score"] = 0
+            st.session_state["quiz_total"] = 0
+            st.session_state["quiz_results"] = []
+
+            # Génération des questions du quiz
+            with st.spinner("Création du quiz..."):
+                llm = LLM()
+                response = llm.call_model(
+                    provider="mistral",
+                    model="mistral-large-latest",
+                    temperature=0.7,
+                    prompt_dict=[
+                        {
+                            "role": "user",
+                            "content": f"Tu es une intelligence artificielle spécialisée dans la création de quiz les vidéos des enseignements en data science. Génère un quiz à choix multiples contenant {nb_questions} questions sur le sujet donné. Retourne les questions sous forme d'un unique tableau JSON. Chaque question doit être un dictionnaire avec les clés suivantes : 'question' (texte de la question), 'options' (liste de 4 options), 'answer' (réponse correcte). Répond en envoyant uniquement et strictement le tableau JSON sans texte supplémentaire. Les questions doivent être exclusivement et uniquement sur les sujets évoqués dans cet extrait de vidéo : {chunk}"
+                        }
+                    ],
+                )
+
+                # Conversion des données du quiz
+                try:
+                    st.session_state["quiz_data"] = convert_to_json(response)
+                    st.session_state["quiz_answers"] = {}
+                    st.session_state["quiz_submitted"] = False
+                except json.JSONDecodeError:
+                    st.error(
+                        "Une erreur est survenue lors de la création du quiz. "
+                        "Veuillez réessayer."
+                    )
+
+    if (
+        "quiz_data" in st.session_state
+        and st.session_state["quiz_data"] is not None
+    ):
+        quiz_col, result_col = st.columns([3, 2])
+
+        with quiz_col:
+            with st.form(key="quiz_form"):
+                # Affichage des questions du quiz
+                for idx, question_data in enumerate(st.session_state["quiz_data"]):
+                    st.subheader(f"Question {idx + 1}")
+                    st.write(question_data["question"])
+
+                    options = question_data["options"]
+                    st.session_state["quiz_answers"][idx] = st.radio(
+                        "Choisissez une réponse :",
+                        options=options,
+                        index=0,
+                        key=f"question_{idx}",
+                    )
+
+                # Bouton de validation des réponses
+                if st.form_submit_button(
+                    "Valider les réponses",
+                    disabled=st.session_state["quiz_submitted"],
+                    use_container_width=True,
+                ):
+                    score, total, results = evaluate_quiz(
+                        st.session_state["quiz_data"],
+                        st.session_state["quiz_answers"],
+                    )
+                    st.session_state["quiz_score"] = score
+                    st.session_state["quiz_total"] = total
+                    st.session_state["quiz_results"] = results
+                    st.session_state["quiz_submitted"] = True
+                    st.rerun(scope="fragment")
+
+        # Affichage des résultats du quiz
+        with result_col:
+            with st.container(border=True):
+                st.subheader("Résultats")
+                if st.session_state.get("quiz_submitted"):
+                    for idx, res in enumerate(st.session_state["quiz_results"]):
+                        if res["correct"]:
+                            st.success(
+                                f":material/check_circle: {res['question']}\n\n"
+                                f"**Bonne réponse : {res['user_answer']}**"
+                            )
+                        else:
+                            st.error(
+                                f":material/cancel: {res['question']}\n\n"
+                                f"Votre réponse : {res['user_answer']}\n\n"
+                                f"**Bonne réponse : {res['correct_answer']}**"
+                            )
+                    st.info(
+                        f":material/flag: **Score final : {st.session_state['quiz_score']} "
+                        f"/ {st.session_state['quiz_total']}**"
+                    )
+
+                    if (
+                        st.session_state["quiz_score"]
+                        == st.session_state["quiz_total"]
+                    ):
+                        st.balloons()
+                else:
+                    st.info(
+                        "Veuillez valider vos réponses pour afficher les résultats.",
+                        icon=":material/info:",
+                    )
+
+
+def evaluate_quiz(quiz_data : list, user_answers : dict) -> tuple:
+    """
+    Évalue les réponses du quiz et retourne le score final.
+
+    Args:
+        quiz_data (list): Liste des questions avec les bonnes réponses.
+        user_answers (dict): Réponses de l'utilisateur.
+
+    Returns:
+        tuple: (score, nombre total de questions, liste des résultats détaillés)
+    """
+
+    # Initialisation des variables
+    score = 0
+    total = len(quiz_data)
+    results = []
+
+    # Évaluation des réponses
+    for idx, question_data in enumerate(quiz_data):
+        correct_answer = question_data["answer"]
+        user_answer = user_answers.get(idx, None)
+
+        is_correct = user_answer == correct_answer
+        if is_correct:
+            score += 1
+
+        # Ajout des résultats
+        results.append(
+            {
+                "question": question_data["question"],
+                "user_answer": user_answer if user_answer else "Aucune réponse",
+                "correct_answer": correct_answer,
+                "correct": is_correct,
+            }
+        )
+
+    return score, total, results
 
 
 @st.dialog("Ajouter une vidéo YouTube")
